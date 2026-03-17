@@ -48,10 +48,7 @@ export async function GET(request: NextRequest) {
     }),
     prisma.transaction.findMany({
       where: { userId, tipo: "venda", statusPagamento: "pendente", ...dateFilter },
-      select: {
-        id: true, descricao: true, valorTotal: true, data: true, formaPagamento: true,
-        cliente: { select: { id: true, nome: true } },
-      },
+      include: { cliente: { select: { id: true, nome: true } }, fornecedor: false },
       orderBy: { data: "asc" },
     }),
   ]);
