@@ -192,15 +192,10 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
-            <div className="grid grid-cols-4 gap-2">
-              {TIPOS.map((t) => (
-                <button key={t} type="button" onClick={() => set("tipo", t)}
-                  className={`py-2 rounded-lg text-sm font-medium capitalize border transition-colors ${form.tipo === t ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400"}`}>
-                  {t === "saida" ? "Saída" : t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+            <p className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-medium border ${tipoCor[form.tipo] ?? "border-gray-200 text-gray-600"}`}>
+              {form.tipo === "saida" ? "Saída" : form.tipo.charAt(0).toUpperCase() + form.tipo.slice(1)}
+            </p>
           </div>
 
           {form.tipo === "venda" && (
@@ -214,12 +209,6 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
               </select>
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição *</label>
-            <input type="text" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} required
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
