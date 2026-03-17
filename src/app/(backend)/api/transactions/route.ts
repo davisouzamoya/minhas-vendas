@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get("tipo");
   const categoria = searchParams.get("categoria");
+  const dataInicio = searchParams.get("dataInicio");
+  const dataFim = searchParams.get("dataFim");
+  const exportCsv = searchParams.get("export") === "csv";
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "20");
 
@@ -22,7 +25,23 @@ export async function GET(request: NextRequest) {
     userId,
     ...(tipo && { tipo }),
     ...(categoria && { categoria }),
+    ...(dataInicio || dataFim
+      ? {
+          data: {
+            ...(dataInicio && { gte: new Date(dataInicio) }),
+            ...(dataFim && { lte: new Date(dataFim + "T23:59:59") }),
+          },
+        }
+      : {}),
   };
+
+  if (exportCsv) {
+    const all = await prisma.transaction.findMany({
+      where,
+      orderBy: { data: "desc" },
+    });
+    return NextResponse.json({ transactions: all, total: all.length });
+  }
 
   const [transactions, total] = await Promise.all([
     prisma.transaction.findMany({
