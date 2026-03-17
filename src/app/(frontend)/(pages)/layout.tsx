@@ -1,4 +1,4 @@
-import { SidebarLayout } from "@/frontend/components/SidebarLayout";
+import { SidebarLayout } from "@/app/(frontend)/components/SidebarLayout";
 
 export default function FrontendLayout({
   children,
