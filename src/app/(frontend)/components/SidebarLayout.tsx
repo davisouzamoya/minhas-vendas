@@ -18,7 +18,7 @@ import {
   PanelLeftOpen,
   LogOut,
 } from "lucide-react";
-import { createClient } from "@/backend/lib/supabase/client";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const nav = [

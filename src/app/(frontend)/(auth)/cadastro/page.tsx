@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, Eye, EyeOff, CheckCircle } from "lucide-react";
-import { createClient } from "@/backend/lib/supabase/client";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 export default function Cadastro() {
   const [nome, setNome] = useState("");

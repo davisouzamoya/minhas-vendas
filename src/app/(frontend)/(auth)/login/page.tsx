@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TrendingUp, Eye, EyeOff } from "lucide-react";
-import { createClient } from "@/backend/lib/supabase/client";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 export default function Login() {
   const router = useRouter();
