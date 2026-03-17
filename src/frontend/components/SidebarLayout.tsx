@@ -14,6 +14,8 @@ import {
   TrendingUp,
   X,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 const nav = [
@@ -23,23 +25,40 @@ const nav = [
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
-function SidebarContent({ onClose }: { onClose?: () => void }) {
+function SidebarContent({
+  onClose,
+  onDesktopClose,
+}: {
+  onClose?: () => void;
+  onDesktopClose?: () => void;
+}) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
 
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
             <TrendingUp size={18} className="text-white" />
           </div>
           <span className="font-bold text-gray-900 dark:text-white text-lg">Minhas Vendas</span>
         </div>
+        {/* Fechar mobile */}
         {onClose && (
           <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <X size={20} />
+          </button>
+        )}
+        {/* Fechar desktop */}
+        {onDesktopClose && (
+          <button
+            onClick={onDesktopClose}
+            className="hidden lg:flex text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            title="Fechar menu"
+          >
+            <PanelLeftClose size={20} />
           </button>
         )}
       </div>
@@ -81,43 +100,65 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
 }
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(true);
 
   return (
     <div className="flex min-h-screen">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col z-30">
-        <SidebarContent />
+      <aside
+        className={`hidden lg:flex fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col z-30 transition-transform duration-300 ${
+          desktopOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <SidebarContent onDesktopClose={() => setDesktopOpen(false)} />
       </aside>
 
       {/* Sidebar mobile overlay */}
-      {open && (
+      {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setOpen(false)}
+          onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar mobile drawer */}
       <aside
         className={`fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 transition-transform duration-300 lg:hidden ${
-          open ? "translate-x-0" : "-translate-x-full"
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <SidebarContent onClose={() => setOpen(false)} />
+        <SidebarContent onClose={() => setMobileOpen(false)} />
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
+      <div
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
+          desktopOpen ? "lg:ml-64" : "lg:ml-0"
+        }`}
+      >
+        {/* Header (mobile + desktop quando sidebar fechada) */}
+        <header className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
+          {/* Mobile: sempre mostra hamburger */}
           <button
-            onClick={() => setOpen(true)}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
           >
             <Menu size={22} />
           </button>
-          <div className="flex items-center gap-2">
+
+          {/* Desktop: mostra botão abrir só quando fechado */}
+          {!desktopOpen && (
+            <button
+              onClick={() => setDesktopOpen(true)}
+              className="hidden lg:flex text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              title="Abrir menu"
+            >
+              <PanelLeftOpen size={22} />
+            </button>
+          )}
+
+          <div className="flex items-center gap-2 lg:hidden">
             <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
               <TrendingUp size={13} className="text-white" />
             </div>
