@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
-import { createClient } from "@/app/(backend)/lib/supabase/client";
+import { createClient } from "@/app/(backend)/lib/supabase/server";
 
 export async function GET() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 

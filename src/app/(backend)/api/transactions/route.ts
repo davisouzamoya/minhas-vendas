@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
-import { createClient } from "@/app/(backend)/lib/supabase/client";
+import { createClient } from "@/app/(backend)/lib/supabase/server";
 
 async function getUserId() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id ?? null;
 }
