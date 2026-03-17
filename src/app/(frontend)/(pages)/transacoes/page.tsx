@@ -15,7 +15,13 @@ interface Transaction {
   valorTotal: number;
   formaPagamento: string | null;
   data: string;
+  clienteId: number | null;
+  fornecedorId: number | null;
+  cliente: { id: number; nome: string } | null;
+  fornecedor: { id: number; nome: string } | null;
 }
+
+interface Pessoa { id: number; nome: string; }
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
 const CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
@@ -307,10 +313,19 @@ export default function Transacoes() {
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [clienteId, setClienteId] = useState("");
+  const [fornecedorId, setFornecedorId] = useState("");
+  const [clientes, setClientes] = useState<Pessoa[]>([]);
+  const [fornecedores, setFornecedores] = useState<Pessoa[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [exporting, setExporting] = useState(false);
   const limit = 15;
+
+  useEffect(() => {
+    fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
+    fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
+  }, []);
 
   const buildParams = useCallback((overrides: Record<string, string> = {}) => {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -318,9 +333,11 @@ export default function Transacoes() {
     if (categoria) params.set("categoria", categoria);
     if (dataInicio) params.set("dataInicio", dataInicio);
     if (dataFim) params.set("dataFim", dataFim);
+    if (clienteId) params.set("clienteId", clienteId);
+    if (fornecedorId) params.set("fornecedorId", fornecedorId);
     Object.entries(overrides).forEach(([k, v]) => params.set(k, v));
     return params;
-  }, [page, tipo, categoria, dataInicio, dataFim]);
+  }, [page, tipo, categoria, dataInicio, dataFim, clienteId, fornecedorId]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/transactions?${buildParams()}`);
@@ -339,7 +356,7 @@ export default function Transacoes() {
     : transactions;
 
   const totalPages = Math.ceil(total / limit);
-  const hasFilters = !!(tipo || categoria || busca || dataInicio || dataFim);
+  const hasFilters = !!(tipo || categoria || busca || dataInicio || dataFim || clienteId || fornecedorId);
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -377,7 +394,7 @@ export default function Transacoes() {
   }
 
   function resetFilters() {
-    setTipo(""); setCategoria(""); setBusca(""); setDataInicio(""); setDataFim(""); setPage(1);
+    setTipo(""); setCategoria(""); setBusca(""); setDataInicio(""); setDataFim(""); setClienteId(""); setFornecedorId(""); setPage(1);
   }
 
   return (
@@ -436,6 +453,26 @@ export default function Transacoes() {
             <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
+          {clientes.length > 0 && (
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cliente</label>
+              <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todos</option>
+                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </div>
+          )}
+          {fornecedores.length > 0 && (
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fornecedor</label>
+              <select value={fornecedorId} onChange={(e) => { setFornecedorId(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todos</option>
+                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select>
+            </div>
+          )}
           {hasFilters && (
             <button onClick={resetFilters} className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">
               Limpar filtros
@@ -470,6 +507,8 @@ export default function Transacoes() {
                   {formatDate(t.data)}
                   {t.categoria && ` • ${t.categoria}`}
                   {t.formaPagamento && ` • ${t.formaPagamento}`}
+                  {t.cliente && ` • ${t.cliente.nome}`}
+                  {t.fornecedor && ` • ${t.fornecedor.nome}`}
                 </p>
                 <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</p>
               </div>
@@ -507,7 +546,11 @@ export default function Transacoes() {
                   </td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{formatDate(t.data)}</td>
+                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
+                    <p>{formatDate(t.data)}</p>
+                    {t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
+                    {t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
+                  </td>
                   <td className="px-5 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">
