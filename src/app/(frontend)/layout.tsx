@@ -1,16 +1,9 @@
-import { Sidebar } from "@/frontend/components/Sidebar";
+import { SidebarLayout } from "@/frontend/components/SidebarLayout";
 
 export default function FrontendLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-64 p-8">
-        {children}
-      </main>
-    </div>
-  );
+  return <SidebarLayout>{children}</SidebarLayout>;
 }
