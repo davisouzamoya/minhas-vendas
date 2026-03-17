@@ -49,11 +49,21 @@ function SidebarContent({
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  function fetchPerfil() {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (d?.nomeNegocio) setNomeNegocio(d.nomeNegocio);
-      if (d?.logoUrl) setLogoUrl(d.logoUrl);
+      setNomeNegocio(d?.nomeNegocio ?? "");
+      setLogoUrl(d?.logoUrl ?? "");
     });
-  }, [pathname]);
+  }
+
+  useEffect(() => { fetchPerfil(); }, [pathname]);
+
+  useEffect(() => {
+    window.addEventListener("perfilUpdated", fetchPerfil);
+    return () => window.removeEventListener("perfilUpdated", fetchPerfil);
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();

@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle, Settings } from "lucide-react";
 
 export default function Perfil() {
+  const router = useRouter();
   const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "" });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -24,6 +26,8 @@ export default function Perfil() {
     });
     setLoading(false);
     setSaved(true);
+    window.dispatchEvent(new Event("perfilUpdated"));
+    router.refresh();
     setTimeout(() => setSaved(false), 3000);
   }
 
