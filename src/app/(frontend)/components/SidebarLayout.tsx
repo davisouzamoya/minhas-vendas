@@ -19,6 +19,7 @@ import {
   LogOut,
   Users,
   Building2,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
@@ -29,6 +30,7 @@ const nav = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/perfil", label: "Perfil", icon: Settings },
 ];
 
 function SidebarContent({
@@ -42,7 +44,16 @@ function SidebarContent({
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [nomeNegocio, setNomeNegocio] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
+      if (d?.nomeNegocio) setNomeNegocio(d.nomeNegocio);
+      if (d?.logoUrl) setLogoUrl(d.logoUrl);
+    });
+  }, [pathname]);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -56,10 +67,16 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
-            <TrendingUp size={18} className="text-white" />
-          </div>
-          <span className="font-bold text-gray-900 dark:text-white text-lg">Minhas Vendas</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
+              <TrendingUp size={18} className="text-white" />
+            </div>
+          )}
+          <span className="font-bold text-gray-900 dark:text-white text-lg truncate">
+            {nomeNegocio || "Minhas Vendas"}
+          </span>
         </div>
         {/* Fechar mobile */}
         {onClose && (

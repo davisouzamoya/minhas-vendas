@@ -1,38 +1,58 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
 import { createClient } from "@/app/(backend)/lib/supabase/server";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   const userId = user.id;
+  const { searchParams } = new URL(request.url);
+  const dataInicio = searchParams.get("dataInicio");
+  const dataFim = searchParams.get("dataFim");
 
-  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw] = await Promise.all([
+  const dateFilter = dataInicio || dataFim ? {
+    data: {
+      ...(dataInicio && { gte: new Date(dataInicio) }),
+      ...(dataFim && { lte: new Date(dataFim + "T23:59:59") }),
+    },
+  } : {};
+
+  const baseWhere = { userId, ...dateFilter };
+
+  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw, inadimplenciaRaw] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoria"],
-      where: { userId, categoria: { not: null } },
+      where: { ...baseWhere, categoria: { not: null } },
       _sum: { valorTotal: true },
       orderBy: { _sum: { valorTotal: "desc" } },
     }),
     prisma.transaction.groupBy({
       by: ["tipo"],
-      where: { userId },
+      where: baseWhere,
       _sum: { valorTotal: true },
       _count: true,
     }),
     prisma.transaction.findMany({
-      where: { userId },
+      where: baseWhere,
       select: { tipo: true, valorTotal: true, data: true },
       orderBy: { data: "asc" },
     }),
     prisma.transaction.groupBy({
       by: ["produto", "tipo"],
-      where: { userId, produto: { not: null } },
+      where: { ...baseWhere, produto: { not: null } },
       _sum: { valorTotal: true },
       _count: true,
       orderBy: { _sum: { valorTotal: "desc" } },
+    }),
+    prisma.transaction.findMany({
+      where: { userId, tipo: "venda", statusPagamento: "pendente", ...dateFilter },
+      select: {
+        id: true, descricao: true, valorTotal: true, data: true, formaPagamento: true,
+        cliente: { select: { id: true, nome: true } },
+      },
+      orderBy: { data: "asc" },
     }),
   ]);
 
@@ -57,7 +77,6 @@ export async function GET() {
   }
   const porMes = Object.entries(mesMap).map(([mes, vals]) => ({ mes, ...vals }));
 
-  // Lucro líquido por produto: receita (vendas+entradas) - custo (despesas+saidas)
   const produtoMap: Record<string, { receita: number; custo: number; transacoes: number }> = {};
   for (const r of porProdutoRaw) {
     const nome = r.produto ?? "Sem produto";
@@ -72,5 +91,17 @@ export async function GET() {
     .map(([produto, v]) => ({ produto, receita: v.receita, custo: v.custo, lucro: v.receita - v.custo, transacoes: v.transacoes }))
     .sort((a, b) => b.lucro - a.lucro);
 
-  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto });
+  // Inadimplência: agrupa por cliente
+  const inadimplenciaMap: Record<string, { clienteId: number | null; nome: string; total: number; count: number }> = {};
+  for (const t of inadimplenciaRaw) {
+    const key = t.cliente ? String(t.cliente.id) : "sem_cliente";
+    const nome = t.cliente?.nome ?? "Sem cliente";
+    if (!inadimplenciaMap[key]) inadimplenciaMap[key] = { clienteId: t.cliente?.id ?? null, nome, total: 0, count: 0 };
+    inadimplenciaMap[key].total += t.valorTotal;
+    inadimplenciaMap[key].count += 1;
+  }
+  const inadimplencia = Object.values(inadimplenciaMap).sort((a, b) => b.total - a.total);
+  const totalInadimplencia = inadimplenciaRaw.reduce((s, t) => s + t.valorTotal, 0);
+
+  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto, inadimplencia, totalInadimplencia });
 }

@@ -17,6 +17,7 @@ model Transaction {
   valorUnitario    Float?
   valorTotal       Float
   formaPagamento   String?
+  statusPagamento  String?
   data             DateTime
   mensagemOriginal String?
   clienteId        Int?
@@ -53,4 +54,12 @@ model Fornecedor {
   transacoes Transaction[]
 
   @@index([userId])
+}
+
+model Perfil {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique
+  nomeNegocio  String
+  logoUrl      String?
+  updatedAt    DateTime @updatedAt
 }

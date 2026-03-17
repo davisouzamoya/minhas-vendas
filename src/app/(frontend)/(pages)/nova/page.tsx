@@ -33,6 +33,7 @@ export default function NovaTransacao() {
     data: new Date().toISOString().split("T")[0],
     clienteId: "",
     fornecedorId: "",
+    statusPagamento: "",
   });
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export default function NovaTransacao() {
       if (field === "tipo") {
         next.clienteId = "";
         next.fornecedorId = "";
+        next.statusPagamento = "";
       }
       return next;
     });
@@ -78,6 +80,7 @@ export default function NovaTransacao() {
         forma_pagamento: form.forma_pagamento || null,
         clienteId: form.clienteId ? parseInt(form.clienteId) : null,
         fornecedorId: form.fornecedorId ? parseInt(form.fornecedorId) : null,
+        statusPagamento: form.statusPagamento || null,
       }),
     });
     setLoading(false);
@@ -212,6 +215,19 @@ export default function NovaTransacao() {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
         </div>
+
+        {/* Status de pagamento (só para vendas) */}
+        {form.tipo === "venda" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status do Pagamento</label>
+            <select value={form.statusPagamento} onChange={(e) => set("statusPagamento", e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="">Não informado</option>
+              <option value="pago">Pago</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+        )}
 
         {/* Pagamento + Data */}
         <div className="grid grid-cols-2 gap-4">

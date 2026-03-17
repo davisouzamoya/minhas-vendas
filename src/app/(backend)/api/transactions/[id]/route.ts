@@ -33,6 +33,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         valorUnitario: body.valor_unitario ?? null,
         valorTotal: body.valor_total,
         formaPagamento: body.forma_pagamento ?? null,
+        statusPagamento: body.statusPagamento ?? null,
         data: new Date(body.data),
       },
     });

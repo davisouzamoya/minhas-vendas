@@ -100,12 +100,17 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          Não tem uma conta?{" "}
-          <Link href="/cadastro" className="text-green-600 hover:text-green-700 font-medium">
-            Cadastre-se
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Não tem uma conta?{" "}
+            <Link href="/cadastro" className="text-green-600 hover:text-green-700 font-medium">
+              Cadastre-se
+            </Link>
+          </p>
+          <Link href="/esqueci-senha" className="text-sm text-gray-400 hover:text-green-600 transition-colors">
+            Esqueci minha senha
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

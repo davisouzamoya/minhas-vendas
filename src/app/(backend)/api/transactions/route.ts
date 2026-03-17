@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
         mensagemOriginal: body.mensagem_original ?? null,
         clienteId: body.clienteId ?? null,
         fornecedorId: body.fornecedorId ?? null,
+        statusPagamento: body.statusPagamento ?? null,
       },
       include,
     });
