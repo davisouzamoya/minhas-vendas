@@ -7,7 +7,7 @@ datasource db {
 }
 
 model Transaction {
-  id               Int      @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   userId           String
   tipo             String
   descricao        String
@@ -19,7 +19,38 @@ model Transaction {
   formaPagamento   String?
   data             DateTime
   mensagemOriginal String?
-  createdAt        DateTime @default(now())
+  clienteId        Int?
+  fornecedorId     Int?
+  createdAt        DateTime  @default(now())
+
+  cliente    Cliente?    @relation(fields: [clienteId], references: [id])
+  fornecedor Fornecedor? @relation(fields: [fornecedorId], references: [id])
+
+  @@index([userId])
+}
+
+model Cliente {
+  id        Int           @id @default(autoincrement())
+  userId    String
+  nome      String
+  telefone  String?
+  email     String?
+  createdAt DateTime      @default(now())
+
+  transacoes Transaction[]
+
+  @@index([userId])
+}
+
+model Fornecedor {
+  id        Int           @id @default(autoincrement())
+  userId    String
+  nome      String
+  telefone  String?
+  email     String?
+  createdAt DateTime      @default(now())
+
+  transacoes Transaction[]
 
   @@index([userId])
 }

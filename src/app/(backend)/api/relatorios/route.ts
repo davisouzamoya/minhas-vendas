@@ -9,7 +9,7 @@ export async function GET() {
 
   const userId = user.id;
 
-  const [porCategoriaRaw, porTipoRaw, todasTransacoes] = await Promise.all([
+  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoria"],
       where: { userId, categoria: { not: null } },
@@ -26,6 +26,13 @@ export async function GET() {
       where: { userId },
       select: { tipo: true, valorTotal: true, data: true },
       orderBy: { data: "asc" },
+    }),
+    prisma.transaction.groupBy({
+      by: ["produto", "tipo"],
+      where: { userId, produto: { not: null } },
+      _sum: { valorTotal: true },
+      _count: true,
+      orderBy: { _sum: { valorTotal: "desc" } },
     }),
   ]);
 
@@ -48,8 +55,22 @@ export async function GET() {
     if (t.tipo === "despesa") mesMap[mes].despesas += t.valorTotal;
     if (t.tipo === "entrada") mesMap[mes].entradas += t.valorTotal;
   }
-
   const porMes = Object.entries(mesMap).map(([mes, vals]) => ({ mes, ...vals }));
 
-  return NextResponse.json({ porCategoria, porTipo, porMes });
+  // Lucro líquido por produto: receita (vendas+entradas) - custo (despesas+saidas)
+  const produtoMap: Record<string, { receita: number; custo: number; transacoes: number }> = {};
+  for (const r of porProdutoRaw) {
+    const nome = r.produto ?? "Sem produto";
+    if (!produtoMap[nome]) produtoMap[nome] = { receita: 0, custo: 0, transacoes: 0 };
+    const val = (r._sum as { valorTotal: number | null }).valorTotal ?? 0;
+    const count = (r as { _count: number })._count;
+    if (r.tipo === "venda" || r.tipo === "entrada") produtoMap[nome].receita += val;
+    if (r.tipo === "despesa" || r.tipo === "saida") produtoMap[nome].custo += val;
+    produtoMap[nome].transacoes += count;
+  }
+  const lucroPorProduto = Object.entries(produtoMap)
+    .map(([produto, v]) => ({ produto, receita: v.receita, custo: v.custo, lucro: v.receita - v.custo, transacoes: v.transacoes }))
+    .sort((a, b) => b.lucro - a.lucro);
+
+  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto });
 }

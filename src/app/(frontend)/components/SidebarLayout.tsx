@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard,
@@ -17,6 +17,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
+  Users,
+  Building2,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -25,6 +27,8 @@ const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/nova", label: "Nova Transação", icon: PlusCircle },
   { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
+  { href: "/clientes", label: "Clientes", icon: Users },
+  { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
@@ -122,6 +126,17 @@ function SidebarContent({
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "n" && !["INPUT", "TEXTAREA", "SELECT"].includes((e.target as HTMLElement).tagName)) {
+        router.push("/nova");
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [router]);
 
   return (
     <div className="flex min-h-screen">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { PlusCircle, Search, Trash2, ReceiptText, Pencil, Download } from "lucide-react";
+import { PlusCircle, Search, Trash2, ReceiptText, Pencil, Download, Copy } from "lucide-react";
 
 interface Transaction {
   id: number;
@@ -348,6 +348,25 @@ export default function Transacoes() {
     load();
   }
 
+  async function handleDuplicate(t: Transaction) {
+    await fetch("/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo: t.tipo,
+        descricao: t.descricao,
+        produto: t.produto,
+        categoria: t.categoria,
+        quantidade: t.quantidade,
+        valor_unitario: t.valorUnitario,
+        valor_total: t.valorTotal,
+        forma_pagamento: t.formaPagamento,
+        data: new Date().toISOString().split("T")[0],
+      }),
+    });
+    load();
+  }
+
   async function handleExport() {
     setExporting(true);
     const params = buildParams({ export: "csv", page: "1", limit: "99999" });
@@ -442,6 +461,7 @@ export default function Transacoes() {
                 <div className="flex items-center gap-1 shrink-0">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
                   <button onClick={() => setEditTransaction(t)} className="p-1 text-gray-400 hover:text-green-500 transition-colors"><Pencil size={14} /></button>
+                  <button onClick={() => handleDuplicate(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="Duplicar"><Copy size={14} /></button>
                   <button onClick={() => setDeleteId(t.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -493,6 +513,9 @@ export default function Transacoes() {
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20">
                         <Pencil size={14} />
+                      </button>
+                      <button onClick={() => handleDuplicate(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar">
+                        <Copy size={14} />
                       </button>
                       <button onClick={() => setDeleteId(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
                         <Trash2 size={14} />

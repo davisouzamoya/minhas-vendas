@@ -9,7 +9,12 @@ export async function GET() {
 
   const userId = user.id;
 
-  const [transactions, totals] = await Promise.all([
+  const now = new Date();
+  const mesAtualInicio = new Date(now.getFullYear(), now.getMonth(), 1);
+  const mesAnteriorInicio = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const mesAnteriorFim = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  const [transactions, totals, totaisMesAtual, totaisMesAnterior] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId },
       orderBy: { data: "desc" },
@@ -20,16 +25,45 @@ export async function GET() {
       where: { userId },
       _sum: { valorTotal: true },
     }),
+    prisma.transaction.groupBy({
+      by: ["tipo"],
+      where: { userId, data: { gte: mesAtualInicio } },
+      _sum: { valorTotal: true },
+    }),
+    prisma.transaction.groupBy({
+      by: ["tipo"],
+      where: { userId, data: { gte: mesAnteriorInicio, lte: mesAnteriorFim } },
+      _sum: { valorTotal: true },
+    }),
   ]);
 
-  const summary = { vendas: 0, despesas: 0, entradas: 0, saidas: 0 };
-  for (const t of totals) {
-    const val = t._sum.valorTotal ?? 0;
-    if (t.tipo === "venda") summary.vendas = val;
-    if (t.tipo === "despesa") summary.despesas = val;
-    if (t.tipo === "entrada") summary.entradas = val;
-    if (t.tipo === "saida") summary.saidas = val;
+  function buildSummary(rows: { tipo: string; _sum: { valorTotal: number | null } }[]) {
+    const s = { vendas: 0, despesas: 0, entradas: 0, saidas: 0 };
+    for (const t of rows) {
+      const val = t._sum.valorTotal ?? 0;
+      if (t.tipo === "venda") s.vendas = val;
+      if (t.tipo === "despesa") s.despesas = val;
+      if (t.tipo === "entrada") s.entradas = val;
+      if (t.tipo === "saida") s.saidas = val;
+    }
+    return s;
   }
+
+  const summary = buildSummary(totals);
+  const mesAtual = buildSummary(totaisMesAtual);
+  const mesAnterior = buildSummary(totaisMesAnterior);
+
+  function variacao(atual: number, anterior: number) {
+    if (anterior === 0) return atual > 0 ? 100 : 0;
+    return Math.round(((atual - anterior) / anterior) * 100);
+  }
+
+  const comparativo = {
+    vendas: { atual: mesAtual.vendas, anterior: mesAnterior.vendas, variacao: variacao(mesAtual.vendas, mesAnterior.vendas) },
+    despesas: { atual: mesAtual.despesas, anterior: mesAnterior.despesas, variacao: variacao(mesAtual.despesas, mesAnterior.despesas) },
+    entradas: { atual: mesAtual.entradas, anterior: mesAnterior.entradas, variacao: variacao(mesAtual.entradas, mesAnterior.entradas) },
+    saidas: { atual: mesAtual.saidas, anterior: mesAnterior.saidas, variacao: variacao(mesAtual.saidas, mesAnterior.saidas) },
+  };
 
   const saldo = summary.vendas + summary.entradas - summary.despesas - summary.saidas;
 
@@ -52,5 +86,5 @@ export async function GET() {
 
   const chartData = Object.entries(chartMap).map(([mes, vals]) => ({ mes, ...vals }));
 
-  return NextResponse.json({ summary, saldo, recentes: transactions, chartData });
+  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo });
 }

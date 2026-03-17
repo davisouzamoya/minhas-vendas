@@ -10,6 +10,7 @@ interface ReportData {
   porCategoria: { categoria: string; total: number }[];
   porTipo: { tipo: string; total: number; count: number }[];
   porMes: { mes: string; vendas: number; despesas: number; entradas: number }[];
+  lucroPorProduto: { produto: string; receita: number; custo: number; lucro: number; transacoes: number }[];
 }
 
 const COLORS = ["#16a34a", "#dc2626", "#2563eb", "#d97706", "#7c3aed", "#0891b2"];
@@ -77,7 +78,7 @@ export default function Relatorios() {
       </div>
 
       {/* Evolução mensal */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
         <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Evolução Mensal</h2>
         {data.porMes.length === 0 ? (
           <p className="text-sm text-gray-400">Sem dados suficientes.</p>
@@ -96,6 +97,39 @@ export default function Relatorios() {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* Lucro por produto */}
+      {data.lucroPorProduto.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Lucro Líquido por Produto</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <th className="text-left py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Produto</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Receita</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Custo</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Lucro</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {data.lucroPorProduto.map(({ produto, receita, custo, lucro, transacoes }) => (
+                  <tr key={produto} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="py-3 font-medium text-gray-800 dark:text-gray-100">{produto}</td>
+                    <td className="py-3 text-right text-green-600 dark:text-green-400">{formatCurrency(receita)}</td>
+                    <td className="py-3 text-right text-red-600 dark:text-red-400">{formatCurrency(custo)}</td>
+                    <td className={`py-3 text-right font-bold ${lucro >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      {formatCurrency(lucro)}
+                    </td>
+                    <td className="py-3 text-right text-gray-500 dark:text-gray-400">{transacoes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

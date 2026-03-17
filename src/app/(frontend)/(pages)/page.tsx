@@ -19,6 +19,13 @@ interface Summary {
   saidas: number;
 }
 
+interface Comparativo {
+  vendas: { atual: number; anterior: number; variacao: number };
+  despesas: { atual: number; anterior: number; variacao: number };
+  entradas: { atual: number; anterior: number; variacao: number };
+  saidas: { atual: number; anterior: number; variacao: number };
+}
+
 interface Transaction {
   id: number;
   tipo: string;
@@ -34,6 +41,7 @@ interface DashboardData {
   saldo: number;
   recentes: Transaction[];
   chartData: { mes: string; vendas: number; despesas: number }[];
+  comparativo: Comparativo;
 }
 
 const tipoCor: Record<string, string> = {
@@ -58,6 +66,16 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("pt-BR");
 }
 
+function Variacao({ variacao, invertido = false }: { variacao: number; invertido?: boolean }) {
+  if (variacao === 0) return null;
+  const positivo = invertido ? variacao < 0 : variacao > 0;
+  return (
+    <span className={`text-xs font-medium ${positivo ? "text-green-500" : "text-red-500"}`}>
+      {variacao > 0 ? "+" : ""}{variacao}% vs mês anterior
+    </span>
+  );
+}
+
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
 
@@ -68,32 +86,40 @@ export default function Dashboard() {
   const cards = data
     ? [
         {
-          label: "Total em Vendas",
-          value: data.summary.vendas,
+          label: "Vendas do mês",
+          value: data.comparativo.vendas.atual,
           icon: TrendingUp,
           color: "text-green-600 dark:text-green-400",
           bg: "bg-green-50 dark:bg-green-900/20",
+          variacao: data.comparativo.vendas.variacao,
+          invertido: false,
         },
         {
-          label: "Total de Despesas",
-          value: data.summary.despesas,
+          label: "Despesas do mês",
+          value: data.comparativo.despesas.atual,
           icon: TrendingDown,
           color: "text-red-600 dark:text-red-400",
           bg: "bg-red-50 dark:bg-red-900/20",
+          variacao: data.comparativo.despesas.variacao,
+          invertido: true,
         },
         {
-          label: "Entradas",
-          value: data.summary.entradas,
+          label: "Entradas do mês",
+          value: data.comparativo.entradas.atual,
           icon: ArrowDownCircle,
           color: "text-blue-600 dark:text-blue-400",
           bg: "bg-blue-50 dark:bg-blue-900/20",
+          variacao: data.comparativo.entradas.variacao,
+          invertido: false,
         },
         {
-          label: "Saldo",
+          label: "Saldo total",
           value: data.saldo,
           icon: Wallet,
           color: data.saldo >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
           bg: data.saldo >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20",
+          variacao: 0,
+          invertido: false,
         },
       ]
     : [];
@@ -104,18 +130,16 @@ export default function Dashboard() {
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        {cards.map(({ label, value, icon: Icon, color, bg }) => (
-          <div
-            key={label}
-            className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex items-center gap-4"
-          >
-            <div className={`w-12 h-12 rounded-xl ${bg} flex items-center justify-center`}>
-              <Icon size={22} className={color} />
-            </div>
-            <div>
+        {cards.map(({ label, value, icon: Icon, color, bg, variacao, invertido }) => (
+          <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
+                <Icon size={20} className={color} />
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
-              <p className={`text-xl font-bold ${color}`}>{formatCurrency(value)}</p>
             </div>
+            <p className={`text-2xl font-bold ${color} mb-1`}>{formatCurrency(value)}</p>
+            <Variacao variacao={variacao} invertido={invertido} />
           </div>
         ))}
       </div>

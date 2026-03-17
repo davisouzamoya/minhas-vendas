@@ -41,6 +41,7 @@ export default function NovaTransacao() {
   }
 
   async function handleSubmit(e: React.FormEvent) {
+    debugger
     e.preventDefault();
     if (!form.descricao || !form.valor_total) return;
 
