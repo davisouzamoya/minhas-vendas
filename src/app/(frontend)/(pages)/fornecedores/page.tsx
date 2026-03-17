@@ -92,6 +92,7 @@ export default function Fornecedores() {
 
   async function load() {
     const res = await fetch("/api/fornecedores");
+    if (!res.ok) return;
     setFornecedores(await res.json());
   }
 

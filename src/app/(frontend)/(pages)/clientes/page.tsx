@@ -92,6 +92,7 @@ export default function Clientes() {
 
   async function load() {
     const res = await fetch("/api/clientes");
+    if (!res.ok) return;
     setClientes(await res.json());
   }
 
