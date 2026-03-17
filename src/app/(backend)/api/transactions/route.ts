@@ -38,26 +38,31 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const body = await request.json();
+    const body = await request.json();
 
-  const transaction = await prisma.transaction.create({
-    data: {
-      userId,
-      tipo: body.tipo,
-      descricao: body.descricao,
-      produto: body.produto ?? null,
-      categoria: body.categoria ?? null,
-      quantidade: body.quantidade ?? null,
-      valorUnitario: body.valor_unitario ?? null,
-      valorTotal: body.valor_total,
-      formaPagamento: body.forma_pagamento ?? null,
-      data: new Date(body.data),
-      mensagemOriginal: body.mensagem_original ?? null,
-    },
-  });
+    const transaction = await prisma.transaction.create({
+      data: {
+        userId,
+        tipo: body.tipo,
+        descricao: body.descricao,
+        produto: body.produto ?? null,
+        categoria: body.categoria ?? null,
+        quantidade: body.quantidade ?? null,
+        valorUnitario: body.valor_unitario ?? null,
+        valorTotal: body.valor_total,
+        formaPagamento: body.forma_pagamento ?? null,
+        data: new Date(body.data),
+        mensagemOriginal: body.mensagem_original ?? null,
+      },
+    });
 
-  return NextResponse.json(transaction, { status: 201 });
+    return NextResponse.json(transaction, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/transactions]", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
