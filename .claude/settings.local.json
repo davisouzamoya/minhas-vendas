@@ -9,7 +9,12 @@
       "Bash(cp -r /Users/davisouza/workspace/minhas-vendas-temp/. /Users/davisouza/workspace/minhasVendas/)",
       "Bash(rm -rf /Users/davisouza/workspace/minhas-vendas-temp)",
       "Bash(source ~/.nvm/nvm.sh)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(gh auth:*)",
+      "Bash(brew install:*)",
+      "Bash(gh repo:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run:*)"
     ]
   }
 }
