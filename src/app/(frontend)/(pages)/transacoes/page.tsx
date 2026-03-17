@@ -157,6 +157,18 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">×</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Cliente/Fornecedor readonly */}
+          {(transaction.cliente || transaction.fornecedor) && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {transaction.cliente ? "Cliente" : "Fornecedor"}
+              </label>
+              <p className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-500 dark:text-gray-400">
+                {transaction.cliente?.nome ?? transaction.fornecedor?.nome}
+              </p>
+            </div>
+          )}
+
           {/* Tipo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
