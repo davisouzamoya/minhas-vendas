@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseMessage } from "@/lib/parser";
-import { prisma } from "@/lib/prisma";
+import { parseMessage } from "@/backend/lib/parser";
+import { prisma } from "@/backend/lib/prisma";
 
 export async function POST(request: NextRequest) {
   const { mensagem, salvar } = await request.json();

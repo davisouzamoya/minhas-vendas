@@ -14,7 +14,9 @@
       "Bash(brew install:*)",
       "Bash(gh repo:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(sed -i '' 's|@/lib/|@/backend/lib/|g' /Users/davisouza/workspace/minhasVendas/src/app/api/parse/route.ts /Users/davisouza/workspace/minhasVendas/src/app/api/dashboard/route.ts /Users/davisouza/workspace/minhasVendas/src/app/api/transactions/route.ts /Users/davisouza/workspace/minhasVendas/src/app/api/relatorios/route.ts)",
+      "Bash(sed -i '' 's|@/components/|@/frontend/components/|g' /Users/davisouza/workspace/minhasVendas/src/app/layout.tsx)"
     ]
   }
 }

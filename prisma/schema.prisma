@@ -3,20 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Transaction {
-  id              Int      @id @default(autoincrement())
-  tipo            String
-  descricao       String
-  produto         String?
-  categoria       String?
-  quantidade      Float?
-  valorUnitario   Float?
-  valorTotal      Float
-  formaPagamento  String?
-  data            DateTime
+  id               Int      @id @default(autoincrement())
+  tipo             String
+  descricao        String
+  produto          String?
+  categoria        String?
+  quantidade       Float?
+  valorUnitario    Float?
+  valorTotal       Float
+  formaPagamento   String?
+  data             DateTime
   mensagemOriginal String?
-  createdAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
 }
