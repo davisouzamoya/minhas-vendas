@@ -8,6 +8,7 @@ datasource db {
 
 model Transaction {
   id               Int      @id @default(autoincrement())
+  userId           String
   tipo             String
   descricao        String
   produto          String?
@@ -19,4 +20,6 @@ model Transaction {
   data             DateTime
   mensagemOriginal String?
   createdAt        DateTime @default(now())
+
+  @@index([userId])
 }

@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 export async function GET() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  const userId = user.id;
+
   const [transactions, totals] = await Promise.all([
     prisma.transaction.findMany({
+      where: { userId },
       orderBy: { data: "desc" },
       take: 10,
     }),
     prisma.transaction.groupBy({
       by: ["tipo"],
+      where: { userId },
       _sum: { valorTotal: true },
     }),
   ]);
@@ -24,13 +33,12 @@ export async function GET() {
 
   const saldo = summary.vendas + summary.entradas - summary.despesas - summary.saidas;
 
-  // Dados do gráfico: últimos 6 meses
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
   sixMonthsAgo.setDate(1);
 
   const chartTransactions = await prisma.transaction.findMany({
-    where: { data: { gte: sixMonthsAgo } },
+    where: { userId, data: { gte: sixMonthsAgo } },
     select: { tipo: true, valorTotal: true, data: true },
   });
 

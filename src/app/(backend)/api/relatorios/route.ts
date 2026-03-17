@@ -1,20 +1,29 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 export async function GET() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
+  const userId = user.id;
+
   const [porCategoriaRaw, porTipoRaw, todasTransacoes] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoria"],
-      where: { categoria: { not: null } },
+      where: { userId, categoria: { not: null } },
       _sum: { valorTotal: true },
       orderBy: { _sum: { valorTotal: "desc" } },
     }),
     prisma.transaction.groupBy({
       by: ["tipo"],
+      where: { userId },
       _sum: { valorTotal: true },
       _count: true,
     }),
     prisma.transaction.findMany({
+      where: { userId },
       select: { tipo: true, valorTotal: true, data: true },
       orderBy: { data: "asc" },
     }),
@@ -31,7 +40,6 @@ export async function GET() {
     count: r._count,
   }));
 
-  // Agrupar por mês
   const mesMap: Record<string, { vendas: number; despesas: number; entradas: number }> = {};
   for (const t of todasTransacoes) {
     const mes = new Date(t.data).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });

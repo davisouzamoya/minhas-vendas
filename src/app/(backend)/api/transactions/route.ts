@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/app/(backend)/lib/prisma";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
+
+async function getUserId() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
 
 export async function GET(request: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get("tipo");
   const categoria = searchParams.get("categoria");
@@ -9,6 +19,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") ?? "20");
 
   const where = {
+    userId,
     ...(tipo && { tipo }),
     ...(categoria && { categoria }),
   };
@@ -27,10 +38,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+
   const body = await request.json();
 
   const transaction = await prisma.transaction.create({
     data: {
+      userId,
       tipo: body.tipo,
       descricao: body.descricao,
       produto: body.produto ?? null,
