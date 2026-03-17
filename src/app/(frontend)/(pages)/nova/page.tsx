@@ -23,7 +23,6 @@ export default function NovaTransacao() {
 
   const [form, setForm] = useState({
     tipo: "venda" as Tipo,
-    descricao: "",
     produto: "",
     categoria: "",
     quantidade: "",
@@ -69,7 +68,7 @@ export default function NovaTransacao() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.descricao || !form.valor_total) return;
+    if (!form.valor_total) return;
 
     setLoading(true);
     const res = await fetch("/api/transactions", {
@@ -77,6 +76,7 @@ export default function NovaTransacao() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        descricao: form.produto || form.tipo,
         quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
         valor_unitario: form.valor_unitario ? parseFloat(form.valor_unitario) : null,
         valor_total: parseFloat(form.valor_total),
@@ -176,14 +176,6 @@ export default function NovaTransacao() {
             )}
           </div>
         )}
-
-        {/* Descrição */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição *</label>
-          <input type="text" value={form.descricao} onChange={(e) => set("descricao", e.target.value)}
-            placeholder="Ex: Venda de camisetas" required
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-        </div>
 
         {/* Produto + Categoria */}
         <div className="grid grid-cols-2 gap-4">
