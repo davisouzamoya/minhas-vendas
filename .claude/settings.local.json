@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(npx:*)",
+      "Bash(nvm list:*)",
+      "Bash(nvm install:*)",
+      "Bash(nvm use:*)",
+      "Bash(cp -r /Users/davisouza/workspace/minhas-vendas-temp/. /Users/davisouza/workspace/minhasVendas/)",
+      "Bash(rm -rf /Users/davisouza/workspace/minhas-vendas-temp)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(npm install:*)"
+    ]
+  }
+}
