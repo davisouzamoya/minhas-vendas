@@ -16,7 +16,10 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  LogOut,
 } from "lucide-react";
+import { createClient } from "@/backend/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -34,6 +37,14 @@ function SidebarContent({
 }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -85,14 +96,21 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Theme toggle */}
-      <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800">
+      {/* Theme toggle + Logout */}
+      <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800 space-y-1">
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           {theme === "dark" ? "Modo Claro" : "Modo Escuro"}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <LogOut size={18} />
+          Sair
         </button>
       </div>
     </div>
