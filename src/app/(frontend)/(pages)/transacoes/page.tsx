@@ -14,6 +14,7 @@ interface Transaction {
   valorUnitario: number | null;
   valorTotal: number;
   formaPagamento: string | null;
+  statusPagamento: string | null;
   data: string;
   createdAt: string;
   updatedAt: string | null;
@@ -549,6 +550,15 @@ export default function Transacoes() {
                   {t.formaPagamento && ` • ${t.formaPagamento}`}
                   {t.cliente && ` • ${t.cliente.nome}`}
                   {t.fornecedor && ` • ${t.fornecedor.nome}`}
+                  {t.statusPagamento && (
+                    <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                      t.statusPagamento === "pago"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
+                    }`}>
+                      {t.statusPagamento === "pago" ? "Pago" : "Pendente"}
+                    </span>
+                  )}
                 </p>
                 <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</p>
               </div>
@@ -569,6 +579,7 @@ export default function Transacoes() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoria</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pagamento</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
                 <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor</th>
                 <th className="px-5 py-3" />
@@ -589,6 +600,19 @@ export default function Transacoes() {
                   </td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
+                  <td className="px-5 py-3">
+                    {t.statusPagamento ? (
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        t.statusPagamento === "pago"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                          : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
+                      }`}>
+                        {t.statusPagamento === "pago" ? "Pago" : "Pendente"}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
                     <p>{formatDate(t.data)}</p>
                     {t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}

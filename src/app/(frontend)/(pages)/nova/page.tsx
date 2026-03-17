@@ -276,7 +276,7 @@ export default function NovaTransacao() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data do Pagamento *</label>
             <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
