@@ -18,11 +18,13 @@ model Transaction {
   valorTotal       Float
   formaPagamento   String?
   statusPagamento  String?
+  recorrente       Boolean   @default(false)
   data             DateTime
   mensagemOriginal String?
   clienteId        Int?
   fornecedorId     Int?
   createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
 
   cliente    Cliente?    @relation(fields: [clienteId], references: [id])
   fornecedor Fornecedor? @relation(fields: [fornecedorId], references: [id])

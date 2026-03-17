@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const baseWhere = { userId, ...dateFilter };
 
-  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw, inadimplenciaRaw] = await Promise.all([
+  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw, inadimplenciaRaw, rankingRaw] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoria"],
       where: { ...baseWhere, categoria: { not: null } },
@@ -50,6 +50,13 @@ export async function GET(request: NextRequest) {
       where: { userId, tipo: "venda", statusPagamento: "pendente", ...dateFilter },
       include: { cliente: { select: { id: true, nome: true } }, fornecedor: false },
       orderBy: { data: "asc" },
+    }),
+    prisma.transaction.groupBy({
+      by: ["clienteId"],
+      where: { ...baseWhere, clienteId: { not: null }, tipo: { in: ["venda", "entrada"] } },
+      _sum: { valorTotal: true },
+      _count: true,
+      orderBy: { _sum: { valorTotal: "desc" } },
     }),
   ]);
 
@@ -89,16 +96,40 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.lucro - a.lucro);
 
   // Inadimplência: agrupa por cliente
-  const inadimplenciaMap: Record<string, { clienteId: number | null; nome: string; total: number; count: number }> = {};
+  const inadimplenciaMap: Record<string, { clienteId: number | null; nome: string; total: number; count: number; ids: number[]; minData: Date }> = {};
   for (const t of inadimplenciaRaw) {
     const key = t.cliente ? String(t.cliente.id) : "sem_cliente";
     const nome = t.cliente?.nome ?? "Sem cliente";
-    if (!inadimplenciaMap[key]) inadimplenciaMap[key] = { clienteId: t.cliente?.id ?? null, nome, total: 0, count: 0 };
+    if (!inadimplenciaMap[key]) inadimplenciaMap[key] = { clienteId: t.cliente?.id ?? null, nome, total: 0, count: 0, ids: [], minData: t.data };
     inadimplenciaMap[key].total += t.valorTotal;
     inadimplenciaMap[key].count += 1;
+    inadimplenciaMap[key].ids.push(t.id);
+    if (t.data < inadimplenciaMap[key].minData) inadimplenciaMap[key].minData = t.data;
   }
-  const inadimplencia = Object.values(inadimplenciaMap).sort((a, b) => b.total - a.total);
+  const hoje = new Date();
+  const inadimplencia = Object.values(inadimplenciaMap)
+    .map((i) => ({ ...i, diasEmAtraso: Math.floor((hoje.getTime() - new Date(i.minData).getTime()) / 86400000) }))
+    .sort((a, b) => b.total - a.total);
   const totalInadimplencia = inadimplenciaRaw.reduce((s, t) => s + t.valorTotal, 0);
 
-  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto, inadimplencia, totalInadimplencia });
+  // Ranking de clientes
+  const clienteIds = rankingRaw.map((r) => r.clienteId as number);
+  const clientesNomes = await prisma.cliente.findMany({
+    where: { id: { in: clienteIds } },
+    select: { id: true, nome: true },
+  });
+  const clienteNomeMap = Object.fromEntries(clientesNomes.map((c) => [c.id, c.nome]));
+  const rankingClientes = rankingRaw.map((r) => {
+    const total = (r._sum as { valorTotal: number | null }).valorTotal ?? 0;
+    const count = (r as { _count: number })._count;
+    return {
+      clienteId: r.clienteId,
+      nome: clienteNomeMap[r.clienteId as number] ?? "Desconhecido",
+      total,
+      transacoes: count,
+      ticketMedio: count > 0 ? total / count : 0,
+    };
+  });
+
+  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto, inadimplencia, totalInadimplencia, rankingClientes });
 }

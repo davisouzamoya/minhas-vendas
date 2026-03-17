@@ -15,6 +15,8 @@ interface Transaction {
   valorTotal: number;
   formaPagamento: string | null;
   data: string;
+  createdAt: string;
+  updatedAt: string | null;
   clienteId: number | null;
   fornecedorId: number | null;
   cliente: { id: number; nome: string } | null;
@@ -315,10 +317,13 @@ function exportToCsv(transactions: Transaction[]) {
   URL.revokeObjectURL(url);
 }
 
+interface Totais { vendas: number; despesas: number; entradas: number; saldo: number; }
+
 // --- Main Page ---
 export default function Transacoes() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
+  const [totais, setTotais] = useState<Totais | null>(null);
   const [page, setPage] = useState(1);
   const [tipo, setTipo] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -356,6 +361,7 @@ export default function Transacoes() {
     const json = await res.json();
     setTransactions(json.transactions);
     setTotal(json.total);
+    setTotais(json.totais ?? null);
   }, [buildParams]);
 
   useEffect(() => { load(); }, [load]);
@@ -429,6 +435,28 @@ export default function Transacoes() {
           </Link>
         </div>
       </div>
+
+      {/* Cards de totais */}
+      {totais && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+            <p className="text-xs text-gray-400 mb-1">Vendas</p>
+            <p className="text-base font-bold text-green-600 dark:text-green-400">{formatCurrency(totais.vendas)}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+            <p className="text-xs text-gray-400 mb-1">Entradas</p>
+            <p className="text-base font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totais.entradas)}</p>
+          </div>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+            <p className="text-xs text-gray-400 mb-1">Despesas</p>
+            <p className="text-base font-bold text-red-600 dark:text-red-400">{formatCurrency(totais.despesas)}</p>
+          </div>
+          <div className={`rounded-xl border p-4 ${totais.saldo >= 0 ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40" : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/40"}`}>
+            <p className="text-xs text-gray-400 mb-1">Saldo</p>
+            <p className={`text-base font-bold ${totais.saldo >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatCurrency(totais.saldo)}</p>
+          </div>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 space-y-3">
@@ -552,6 +580,9 @@ export default function Transacoes() {
                   <td className="px-5 py-3">
                     <p className="font-medium text-gray-800 dark:text-gray-100">{t.descricao}</p>
                     {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+                    {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
+                      <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
+                    )}
                   </td>
                   <td className="px-5 py-3">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>

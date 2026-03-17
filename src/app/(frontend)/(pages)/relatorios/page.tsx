@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
-import { Printer, AlertTriangle } from "lucide-react";
+import { Printer, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface ReportData {
   porCategoria: { categoria: string; total: number }[];
   porTipo: { tipo: string; total: number; count: number }[];
   porMes: { mes: string; vendas: number; despesas: number; entradas: number }[];
   lucroPorProduto: { produto: string; receita: number; custo: number; lucro: number; transacoes: number }[];
-  inadimplencia: { clienteId: number | null; nome: string; total: number; count: number }[];
+  inadimplencia: { clienteId: number | null; nome: string; total: number; count: number; ids: number[]; diasEmAtraso: number }[];
   totalInadimplencia: number;
+  rankingClientes: { clienteId: number | null; nome: string; total: number; transacoes: number; ticketMedio: number }[];
 }
+
+interface Perfil { nomeNegocio: string; logoUrl: string | null; }
 
 const COLORS = ["#16a34a", "#dc2626", "#2563eb", "#d97706", "#7c3aed", "#0891b2"];
 
@@ -28,8 +31,11 @@ function formatCurrency(value: number) {
 
 export default function Relatorios() {
   const [data, setData] = useState<ReportData | null>(null);
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [pagando, setPagando] = useState<number[] | null>(null);
+  const printDateRef = useRef(new Date().toLocaleDateString("pt-BR"));
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -39,7 +45,23 @@ export default function Relatorios() {
     if (res.ok) setData(await res.json());
   }, [dataInicio, dataFim]);
 
+  async function marcarPago(ids: number[]) {
+    setPagando(ids);
+    await fetch("/api/transactions/bulk-pagar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    setPagando(null);
+    load();
+    window.dispatchEvent(new Event("vendas-pendentes-updated"));
+  }
+
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then(setPerfil);
+  }, []);
 
   if (!data) return <p className="text-gray-400 text-sm">Carregando...</p>;
 
@@ -53,7 +75,20 @@ export default function Relatorios() {
           <Printer size={15} /> Exportar PDF
         </button>
       </div>
-      <h1 className="hidden print:block text-2xl font-bold text-gray-900 mb-6">Relatórios</h1>
+      {/* Cabeçalho visível apenas na impressão */}
+      <div className="hidden print:flex items-center gap-4 mb-8 pb-4 border-b border-gray-300">
+        {perfil?.logoUrl ? (
+          <img src={perfil.logoUrl} alt="Logo" className="w-14 h-14 rounded-lg object-cover" />
+        ) : (
+          <div className="w-14 h-14 rounded-lg bg-green-600 flex items-center justify-center">
+            <span className="text-white font-bold text-xl">R</span>
+          </div>
+        )}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{perfil?.nomeNegocio || "Relatório Financeiro"}</h1>
+          <p className="text-sm text-gray-500">Gerado em {printDateRef.current}{dataInicio || dataFim ? ` · Período: ${dataInicio || "início"} a ${dataFim || "hoje"}` : ""}</p>
+        </div>
+      </div>
 
       {/* Filtro de período */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 flex flex-col sm:flex-row gap-3 items-end print:hidden">
@@ -144,16 +179,62 @@ export default function Relatorios() {
           </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {data.inadimplencia.map((i) => (
-              <div key={i.nome} className="flex items-center justify-between py-3">
-                <div>
+              <div key={i.nome} className="flex items-center justify-between py-3 gap-3">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{i.nome}</p>
-                  <p className="text-xs text-gray-400">{i.count} venda{i.count !== 1 ? "s" : ""} pendente{i.count !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-gray-400">
+                    {i.count} venda{i.count !== 1 ? "s" : ""} pendente{i.count !== 1 ? "s" : ""}
+                    {i.diasEmAtraso > 0 && (
+                      <span className={`ml-1 font-medium ${i.diasEmAtraso > 30 ? "text-red-500" : "text-orange-500"}`}>
+                        · {i.diasEmAtraso} dia{i.diasEmAtraso !== 1 ? "s" : ""} em atraso
+                      </span>
+                    )}
+                  </p>
                 </div>
-                <p className="text-sm font-bold text-orange-600 dark:text-orange-400">{formatCurrency(i.total)}</p>
+                <p className="text-sm font-bold text-orange-600 dark:text-orange-400 shrink-0">{formatCurrency(i.total)}</p>
+                <button
+                  onClick={() => marcarPago(i.ids)}
+                  disabled={pagando !== null}
+                  className="print:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                >
+                  <CheckCircle2 size={13} />
+                  {pagando?.toString() === i.ids.toString() ? "Salvando..." : "Marcar pago"}
+                </button>
               </div>
             ))}
           </div>
           <p className="text-xs text-gray-400 mt-3">Vendas com status "pendente". Marque como pagas na tela de Transações.</p>
+        </div>
+      )}
+
+      {/* Ranking de clientes */}
+      {data.rankingClientes.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Ranking de Clientes</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <th className="text-left py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-8">#</th>
+                  <th className="text-left py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total comprado</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedidos</th>
+                  <th className="text-right py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ticket médio</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {data.rankingClientes.map((c, idx) => (
+                  <tr key={c.clienteId ?? idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="py-3 text-gray-400 font-medium">{idx + 1}</td>
+                    <td className="py-3 font-medium text-gray-800 dark:text-gray-100">{c.nome}</td>
+                    <td className="py-3 text-right text-green-600 dark:text-green-400 font-semibold">{formatCurrency(c.total)}</td>
+                    <td className="py-3 text-right text-gray-500 dark:text-gray-400">{c.transacoes}</td>
+                    <td className="py-3 text-right text-gray-600 dark:text-gray-300">{formatCurrency(c.ticketMedio)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

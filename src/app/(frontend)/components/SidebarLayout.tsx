@@ -46,6 +46,7 @@ function SidebarContent({
   const [mounted, setMounted] = useState(false);
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [pendentes, setPendentes] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -58,11 +59,21 @@ function SidebarContent({
     });
   }
 
-  useEffect(() => { fetchPerfil(); }, [pathname]);
+  function fetchPendentes() {
+    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => {
+      setPendentes(d?.count ?? 0);
+    });
+  }
+
+  useEffect(() => { fetchPerfil(); fetchPendentes(); }, [pathname]);
 
   useEffect(() => {
     window.addEventListener("perfilUpdated", fetchPerfil);
-    return () => window.removeEventListener("perfilUpdated", fetchPerfil);
+    window.addEventListener("vendas-pendentes-updated", fetchPendentes);
+    return () => {
+      window.removeEventListener("perfilUpdated", fetchPerfil);
+      window.removeEventListener("vendas-pendentes-updated", fetchPendentes);
+    };
   }, []);
 
   async function handleLogout() {
@@ -122,7 +133,12 @@ function SidebarContent({
               }`}
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {href === "/relatorios" && pendentes > 0 && (
+                <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+                  {pendentes}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -34,6 +34,8 @@ export default function NovaTransacao() {
     clienteId: "",
     fornecedorId: "",
     statusPagamento: "",
+    recorrente: false,
+    meses: 3,
   });
 
   useEffect(() => {
@@ -49,11 +51,12 @@ export default function NovaTransacao() {
         const unit = parseFloat(field === "valor_unitario" ? value : prev.valor_unitario) || 0;
         if (qty > 0 && unit > 0) next.valor_total = (qty * unit).toFixed(2);
       }
-      // Limpa cliente/fornecedor ao trocar tipo
+      // Limpa campos ao trocar tipo
       if (field === "tipo") {
         next.clienteId = "";
         next.fornecedorId = "";
         next.statusPagamento = "";
+        next.recorrente = false;
       }
       return next;
     });
@@ -81,6 +84,8 @@ export default function NovaTransacao() {
         clienteId: form.clienteId ? parseInt(form.clienteId) : null,
         fornecedorId: form.fornecedorId ? parseInt(form.fornecedorId) : null,
         statusPagamento: form.statusPagamento || null,
+        recorrente: form.recorrente,
+        meses: form.recorrente ? form.meses : 1,
       }),
     });
     setLoading(false);
@@ -226,6 +231,37 @@ export default function NovaTransacao() {
               <option value="pago">Pago</option>
               <option value="pendente">Pendente</option>
             </select>
+          </div>
+        )}
+
+        {/* Recorrência (despesa/saida) */}
+        {usaFornecedor && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="recorrente"
+                checked={form.recorrente}
+                onChange={(e) => setForm((prev) => ({ ...prev, recorrente: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <label htmlFor="recorrente" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Despesa recorrente (repete mensalmente)
+              </label>
+            </div>
+            {form.recorrente && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Repetir por quantos meses?</label>
+                <input
+                  type="number"
+                  value={form.meses}
+                  onChange={(e) => setForm((prev) => ({ ...prev, meses: Math.min(24, Math.max(2, parseInt(e.target.value) || 2)) }))}
+                  min={2} max={24}
+                  className="w-32 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Serão criadas {form.meses} transações (hoje + próximos {form.meses - 1} meses)</p>
+              </div>
+            )}
           </div>
         )}
 

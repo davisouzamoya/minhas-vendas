@@ -47,12 +47,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ transactions: all, total: all.length });
   }
 
-  const [transactions, total] = await Promise.all([
+  const [transactions, total, aggVendas, aggDespesas, aggEntradas] = await Promise.all([
     prisma.transaction.findMany({ where, orderBy: { data: "desc" }, skip: (page - 1) * limit, take: limit, include }),
     prisma.transaction.count({ where }),
+    prisma.transaction.aggregate({ where: { ...where, tipo: "venda" }, _sum: { valorTotal: true } }),
+    prisma.transaction.aggregate({ where: { ...where, tipo: "despesa" }, _sum: { valorTotal: true } }),
+    prisma.transaction.aggregate({ where: { ...where, tipo: "entrada" }, _sum: { valorTotal: true } }),
   ]);
 
-  return NextResponse.json({ transactions, total, page, limit });
+  const totais = {
+    vendas: aggVendas._sum.valorTotal ?? 0,
+    despesas: aggDespesas._sum.valorTotal ?? 0,
+    entradas: aggEntradas._sum.valorTotal ?? 0,
+    saldo: (aggVendas._sum.valorTotal ?? 0) + (aggEntradas._sum.valorTotal ?? 0) - (aggDespesas._sum.valorTotal ?? 0),
+  };
+
+  return NextResponse.json({ transactions, total, page, limit, totais });
 }
 
 export async function POST(request: NextRequest) {
@@ -62,25 +72,39 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
+    const baseData = {
+      userId,
+      tipo: body.tipo,
+      descricao: body.descricao,
+      produto: body.produto ?? null,
+      categoria: body.categoria ?? null,
+      quantidade: body.quantidade ?? null,
+      valorUnitario: body.valor_unitario ?? null,
+      valorTotal: body.valor_total,
+      formaPagamento: body.forma_pagamento ?? null,
+      mensagemOriginal: body.mensagem_original ?? null,
+      clienteId: body.clienteId ?? null,
+      fornecedorId: body.fornecedorId ?? null,
+      statusPagamento: body.statusPagamento ?? null,
+      recorrente: body.recorrente ?? false,
+    };
+
     const transaction = await prisma.transaction.create({
-      data: {
-        userId,
-        tipo: body.tipo,
-        descricao: body.descricao,
-        produto: body.produto ?? null,
-        categoria: body.categoria ?? null,
-        quantidade: body.quantidade ?? null,
-        valorUnitario: body.valor_unitario ?? null,
-        valorTotal: body.valor_total,
-        formaPagamento: body.forma_pagamento ?? null,
-        data: new Date(body.data),
-        mensagemOriginal: body.mensagem_original ?? null,
-        clienteId: body.clienteId ?? null,
-        fornecedorId: body.fornecedorId ?? null,
-        statusPagamento: body.statusPagamento ?? null,
-      },
+      data: { ...baseData, data: new Date(body.data) },
       include,
     });
+
+    // Gera cópias mensais se recorrente
+    if (body.recorrente && body.meses && body.meses > 1) {
+      const baseDate = new Date(body.data);
+      const copies = [];
+      for (let i = 1; i < body.meses; i++) {
+        const d = new Date(baseDate);
+        d.setMonth(d.getMonth() + i);
+        copies.push({ ...baseData, data: d });
+      }
+      await prisma.transaction.createMany({ data: copies });
+    }
 
     return NextResponse.json(transaction, { status: 201 });
   } catch (err) {
