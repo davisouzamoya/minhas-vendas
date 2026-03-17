@@ -21,7 +21,6 @@ import {
   Building2,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
