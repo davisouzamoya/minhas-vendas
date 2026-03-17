@@ -24,14 +24,20 @@ export async function GET(request: NextRequest) {
   const dataFim = searchParams.get("dataFim");
   const clienteId = searchParams.get("clienteId");
   const fornecedorId = searchParams.get("fornecedorId");
+  const statusPagamento = searchParams.get("statusPagamento");
   const exportCsv = searchParams.get("export") === "csv";
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "20");
+  const sortByRaw = searchParams.get("sortBy") ?? "data";
+  const sortDir = searchParams.get("sortDir") === "asc" ? "asc" : "desc";
+  const validSort = ["data", "valorTotal", "tipo", "descricao"];
+  const sortBy = validSort.includes(sortByRaw) ? sortByRaw : "data";
 
   const where = {
     userId,
     ...(tipo && { tipo }),
     ...(categoria && { categoria }),
+    ...(statusPagamento && { statusPagamento }),
     ...(clienteId && { clienteId: parseInt(clienteId) }),
     ...(fornecedorId && { fornecedorId: parseInt(fornecedorId) }),
     ...(dataInicio || dataFim ? {
@@ -42,13 +48,15 @@ export async function GET(request: NextRequest) {
     } : {}),
   };
 
+  const orderBy = { [sortBy]: sortDir } as Record<string, string>;
+
   if (exportCsv) {
-    const all = await prisma.transaction.findMany({ where, orderBy: { data: "desc" }, include });
+    const all = await prisma.transaction.findMany({ where, orderBy, include });
     return NextResponse.json({ transactions: all, total: all.length });
   }
 
   const [transactions, total, aggVendas, aggDespesas, aggEntradas] = await Promise.all([
-    prisma.transaction.findMany({ where, orderBy: { data: "desc" }, skip: (page - 1) * limit, take: limit, include }),
+    prisma.transaction.findMany({ where, orderBy, skip: (page - 1) * limit, take: limit, include }),
     prisma.transaction.count({ where }),
     prisma.transaction.aggregate({ where: { ...where, tipo: "venda" }, _sum: { valorTotal: true } }),
     prisma.transaction.aggregate({ where: { ...where, tipo: "despesa" }, _sum: { valorTotal: true } }),
@@ -86,6 +94,8 @@ export async function POST(request: NextRequest) {
       clienteId: body.clienteId ?? null,
       fornecedorId: body.fornecedorId ?? null,
       statusPagamento: body.statusPagamento ?? null,
+      observacoes: body.observacoes ?? null,
+      comprovanteUrl: body.comprovanteUrl ?? null,
       recorrente: body.recorrente ?? false,
     };
 

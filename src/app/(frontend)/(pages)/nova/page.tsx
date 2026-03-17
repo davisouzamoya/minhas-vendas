@@ -34,6 +34,8 @@ export default function NovaTransacao() {
     clienteId: "",
     fornecedorId: "",
     statusPagamento: "",
+    observacoes: "",
+    comprovanteUrl: "",
     recorrente: false,
     meses: 3,
   });
@@ -84,6 +86,8 @@ export default function NovaTransacao() {
         clienteId: form.clienteId ? parseInt(form.clienteId) : null,
         fornecedorId: form.fornecedorId ? parseInt(form.fornecedorId) : null,
         statusPagamento: form.statusPagamento || null,
+        observacoes: form.observacoes || null,
+        comprovanteUrl: form.comprovanteUrl || null,
         recorrente: form.recorrente,
         meses: form.recorrente ? form.meses : 1,
       }),
@@ -280,6 +284,23 @@ export default function NovaTransacao() {
             <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
+        </div>
+
+        {/* Observações */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
+          <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} rows={2}
+            placeholder="Notas adicionais..."
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+        </div>
+
+        {/* Comprovante */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprovante (URL)</label>
+          <input type="url" value={form.comprovanteUrl} onChange={(e) => setForm({ ...form, comprovanteUrl: e.target.value })}
+            placeholder="https://..."
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          <p className="text-xs text-gray-400 mt-1">Cole a URL do comprovante (imagem, PDF, etc.)</p>
         </div>
 
         <button type="submit" disabled={loading}

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { PlusCircle, Search, Trash2, ReceiptText, Pencil, Download, Copy } from "lucide-react";
+import {
+  PlusCircle, Search, Trash2, ReceiptText, Pencil, Download, Copy,
+  CheckCircle2, Paperclip, Repeat, Square, CheckSquare, ArrowUpDown,
+  ArrowUp, ArrowDown, Layers,
+} from "lucide-react";
 
+// --- Interfaces ---
 interface Transaction {
   id: number;
   tipo: string;
@@ -15,6 +20,9 @@ interface Transaction {
   valorTotal: number;
   formaPagamento: string | null;
   statusPagamento: string | null;
+  observacoes: string | null;
+  comprovanteUrl: string | null;
+  recorrente: boolean;
   data: string;
   createdAt: string;
   updatedAt: string | null;
@@ -25,7 +33,9 @@ interface Transaction {
 }
 
 interface Pessoa { id: number; nome: string; }
+interface Totais { vendas: number; despesas: number; entradas: number; saldo: number; }
 
+// --- Constants ---
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
 const CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
@@ -38,20 +48,16 @@ const tipoCor: Record<string, string> = {
 };
 
 const tipoLabel: Record<string, string> = {
-  venda: "Venda",
-  despesa: "Despesa",
-  entrada: "Entrada",
-  saida: "Saída",
+  venda: "Venda", despesa: "Despesa", entrada: "Entrada", saida: "Saída",
 };
 
+// --- Helpers ---
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
-
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("pt-BR");
 }
-
 function toInputDate(dateStr: string) {
   return new Date(dateStr).toISOString().split("T")[0];
 }
@@ -73,37 +79,45 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   );
 }
 
-// --- Confirm Delete Modal ---
-function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+// --- Toast Undo ---
+function ToastUndo({ message, onUndo, onDismiss }: { message: string; onUndo: () => void; onDismiss: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm mx-4 shadow-xl">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Excluir transação</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Tem certeza? Esta ação não pode ser desfeita.</p>
-        <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            Cancelar
-          </button>
-          <button onClick={onConfirm} className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-colors">
-            Excluir
-          </button>
-        </div>
-      </div>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-3 rounded-xl shadow-2xl text-sm whitespace-nowrap">
+      <span>{message}</span>
+      <button onClick={onUndo} className="font-semibold text-green-400 dark:text-green-700 hover:underline">Desfazer</button>
+      <button onClick={onDismiss} className="ml-1 text-gray-400 hover:text-white dark:hover:text-gray-900 text-lg leading-none">×</button>
     </div>
+  );
+}
+
+// --- Sort Icon ---
+function SortIcon({ col, sortBy, sortDir }: { col: string; sortBy: string; sortDir: string }) {
+  if (sortBy !== col) return <ArrowUpDown size={12} className="ml-1 text-gray-300 dark:text-gray-600" />;
+  return sortDir === "asc"
+    ? <ArrowUp size={12} className="ml-1 text-green-500" />
+    : <ArrowDown size={12} className="ml-1 text-green-500" />;
+}
+
+// --- Status Badge ---
+function StatusBadge({ status, onClick }: { status: string | null; onClick?: () => void }) {
+  if (!status) return <span className="text-gray-400 text-xs">—</span>;
+  const cls = status === "pago"
+    ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+    : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400";
+  return (
+    <button onClick={onClick} title={onClick ? "Clique para alternar" : undefined}
+      className={`text-xs px-2 py-0.5 rounded-full font-medium transition-opacity ${cls} ${onClick ? "hover:opacity-70" : "cursor-default"}`}>
+      {status === "pago" ? "Pago" : "Pendente"}
+    </button>
   );
 }
 
 // --- Edit Modal ---
 type EditForm = {
-  tipo: string;
-  descricao: string;
-  produto: string;
-  categoria: string;
-  quantidade: string;
-  valor_unitario: string;
-  valor_total: string;
-  forma_pagamento: string;
-  data: string;
+  tipo: string; descricao: string; produto: string; categoria: string;
+  quantidade: string; valor_unitario: string; valor_total: string;
+  forma_pagamento: string; statusPagamento: string;
+  observacoes: string; comprovanteUrl: string; data: string;
 };
 
 function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction; onSave: () => void; onCancel: () => void }) {
@@ -116,6 +130,9 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
     valor_unitario: transaction.valorUnitario?.toString() ?? "",
     valor_total: transaction.valorTotal.toString(),
     forma_pagamento: transaction.formaPagamento ?? "",
+    statusPagamento: transaction.statusPagamento ?? "",
+    observacoes: transaction.observacoes ?? "",
+    comprovanteUrl: transaction.comprovanteUrl ?? "",
     data: toInputDate(transaction.data),
   });
   const [saving, setSaving] = useState(false);
@@ -146,6 +163,9 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
         produto: form.produto || null,
         categoria: form.categoria || null,
         forma_pagamento: form.forma_pagamento || null,
+        statusPagamento: form.statusPagamento || null,
+        observacoes: form.observacoes || null,
+        comprovanteUrl: form.comprovanteUrl || null,
       }),
     });
     setSaving(false);
@@ -160,7 +180,6 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">×</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Cliente/Fornecedor readonly */}
           {(transaction.cliente || transaction.fornecedor) && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -172,7 +191,6 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
             </div>
           )}
 
-          {/* Tipo */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
             <div className="grid grid-cols-4 gap-2">
@@ -185,14 +203,24 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
             </div>
           </div>
 
-          {/* Descrição */}
+          {form.tipo === "venda" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status do Pagamento</label>
+              <select value={form.statusPagamento} onChange={(e) => set("statusPagamento", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Não informado</option>
+                <option value="pago">Pago</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição *</label>
             <input type="text" value={form.descricao} onChange={(e) => set("descricao", e.target.value)} required
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
 
-          {/* Produto + Categoria */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto</label>
@@ -209,7 +237,6 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
             </div>
           </div>
 
-          {/* Qtd + Valor unit + Total */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantidade</label>
@@ -228,7 +255,6 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
             </div>
           </div>
 
-          {/* Pagamento + Data */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pagamento</label>
@@ -243,6 +269,20 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
               <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
+            <textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={2}
+              placeholder="Notas adicionais..."
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprovante (URL)</label>
+            <input type="url" value={form.comprovanteUrl} onChange={(e) => set("comprovanteUrl", e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
 
           <div className="flex gap-3 justify-end pt-2">
@@ -271,7 +311,6 @@ function Pagination({ page, totalPages, total, onChange }: { page: number; total
     if (page < totalPages - 2) pages.push("...");
     pages.push(totalPages);
   }
-
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800">
       <p className="text-xs text-gray-400">{total} registro{total !== 1 ? "s" : ""}</p>
@@ -281,7 +320,7 @@ function Pagination({ page, totalPages, total, onChange }: { page: number; total
           p === "..." ? (
             <span key={`e-${i}`} className="px-2 py-1 text-xs text-gray-400">...</span>
           ) : (
-            <button key={p} onClick={() => onChange(p)}
+            <button key={p} onClick={() => onChange(p as number)}
               className={`px-3 py-1 text-xs rounded-lg border transition-colors ${p === page ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
               {p}
             </button>
@@ -295,18 +334,15 @@ function Pagination({ page, totalPages, total, onChange }: { page: number; total
 
 // --- CSV Export ---
 function exportToCsv(transactions: Transaction[]) {
-  const header = ["ID", "Tipo", "Descrição", "Produto", "Categoria", "Quantidade", "Valor Unitário", "Valor Total", "Forma de Pagamento", "Data"];
+  const header = ["ID", "Tipo", "Descrição", "Produto", "Categoria", "Quantidade", "Valor Unitário", "Valor Total", "Pagamento", "Status", "Data", "Observações"];
   const rows = transactions.map((t) => [
-    t.id,
-    tipoLabel[t.tipo] ?? t.tipo,
+    t.id, tipoLabel[t.tipo] ?? t.tipo,
     `"${t.descricao.replace(/"/g, '""')}"`,
-    t.produto ?? "",
-    t.categoria ?? "",
-    t.quantidade ?? "",
-    t.valorUnitario ?? "",
-    t.valorTotal,
-    t.formaPagamento ?? "",
+    t.produto ?? "", t.categoria ?? "",
+    t.quantidade ?? "", t.valorUnitario ?? "", t.valorTotal,
+    t.formaPagamento ?? "", t.statusPagamento ?? "",
     formatDate(t.data),
+    t.observacoes ? `"${t.observacoes.replace(/"/g, '""')}"` : "",
   ]);
   const csv = [header, ...rows].map((r) => r.join(";")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -318,8 +354,6 @@ function exportToCsv(transactions: Transaction[]) {
   URL.revokeObjectURL(url);
 }
 
-interface Totais { vendas: number; despesas: number; entradas: number; saldo: number; }
-
 // --- Main Page ---
 export default function Transacoes() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -328,16 +362,22 @@ export default function Transacoes() {
   const [page, setPage] = useState(1);
   const [tipo, setTipo] = useState("");
   const [categoria, setCategoria] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [fornecedorId, setFornecedorId] = useState("");
+  const [sortBy, setSortBy] = useState("data");
+  const [sortDir, setSortDir] = useState("desc");
+  const [agrupar, setAgrupar] = useState<"" | "dia" | "mes">("");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const [clientes, setClientes] = useState<Pessoa[]>([]);
   const [fornecedores, setFornecedores] = useState<Pessoa[]>([]);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; onUndo: () => void } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limit = 15;
 
   useEffect(() => {
@@ -346,16 +386,17 @@ export default function Transacoes() {
   }, []);
 
   const buildParams = useCallback((overrides: Record<string, string> = {}) => {
-    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    const params = new URLSearchParams({ page: String(page), limit: String(limit), sortBy, sortDir });
     if (tipo) params.set("tipo", tipo);
     if (categoria) params.set("categoria", categoria);
+    if (statusFilter) params.set("statusPagamento", statusFilter);
     if (dataInicio) params.set("dataInicio", dataInicio);
     if (dataFim) params.set("dataFim", dataFim);
     if (clienteId) params.set("clienteId", clienteId);
     if (fornecedorId) params.set("fornecedorId", fornecedorId);
     Object.entries(overrides).forEach(([k, v]) => params.set(k, v));
     return params;
-  }, [page, tipo, categoria, dataInicio, dataFim, clienteId, fornecedorId]);
+  }, [page, tipo, categoria, statusFilter, dataInicio, dataFim, clienteId, fornecedorId, sortBy, sortDir]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/transactions?${buildParams()}`);
@@ -363,25 +404,92 @@ export default function Transacoes() {
     setTransactions(json.transactions);
     setTotal(json.total);
     setTotais(json.totais ?? null);
+    setSelected(new Set());
   }, [buildParams]);
 
   useEffect(() => { load(); }, [load]);
 
+  function toggleSort(col: string) {
+    if (sortBy === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
+    else { setSortBy(col); setSortDir("desc"); }
+    setPage(1);
+  }
+
   const filtered = busca
     ? transactions.filter((t) =>
         t.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-        t.produto?.toLowerCase().includes(busca.toLowerCase())
+        t.produto?.toLowerCase().includes(busca.toLowerCase()) ||
+        t.observacoes?.toLowerCase().includes(busca.toLowerCase())
       )
     : transactions;
 
   const totalPages = Math.ceil(total / limit);
-  const hasFilters = !!(tipo || categoria || busca || dataInicio || dataFim || clienteId || fornecedorId);
+  const hasFilters = !!(tipo || categoria || busca || dataInicio || dataFim || clienteId || fornecedorId || statusFilter);
 
-  async function handleDelete() {
-    if (!deleteId) return;
-    await fetch(`/api/transactions/${deleteId}`, { method: "DELETE" });
-    setDeleteId(null);
+  function showToastWithUndo(message: string, undoFn: () => void) {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setToast({ message, onUndo: () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current); setToast(null); undoFn(); } });
+  }
+
+  function dismissToast() {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setToast(null);
+  }
+
+  function handleDeleteWithUndo(id: number) {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    setTotal((prev) => prev - 1);
+    showToastWithUndo("Transação excluída.", load);
+    undoTimerRef.current = setTimeout(async () => {
+      await fetch(`/api/transactions/${id}`, { method: "DELETE" });
+      setToast(null);
+    }, 5000);
+  }
+
+  function handleBulkDeleteWithUndo() {
+    const ids = Array.from(selected);
+    setTransactions((prev) => prev.filter((t) => !selected.has(t.id)));
+    setTotal((prev) => prev - ids.length);
+    setSelected(new Set());
+    showToastWithUndo(`${ids.length} transaç${ids.length > 1 ? "ões excluídas" : "ão excluída"}.`, load);
+    undoTimerRef.current = setTimeout(async () => {
+      await fetch("/api/transactions/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      setToast(null);
+    }, 5000);
+  }
+
+  async function handleBulkPago() {
+    const ids = Array.from(selected);
+    await fetch("/api/transactions/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, statusPagamento: "pago" }),
+    });
+    setSelected(new Set());
     load();
+    window.dispatchEvent(new Event("vendas-pendentes-updated"));
+  }
+
+  async function handleTogglePago(t: Transaction) {
+    const next = t.statusPagamento === "pago" ? "pendente" : "pago";
+    await fetch(`/api/transactions/${t.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo: t.tipo, descricao: t.descricao, produto: t.produto,
+        categoria: t.categoria, quantidade: t.quantidade,
+        valor_unitario: t.valorUnitario, valor_total: t.valorTotal,
+        forma_pagamento: t.formaPagamento, statusPagamento: next,
+        observacoes: t.observacoes, comprovanteUrl: t.comprovanteUrl,
+        data: toInputDate(t.data),
+      }),
+    });
+    load();
+    window.dispatchEvent(new Event("vendas-pendentes-updated"));
   }
 
   async function handleDuplicate(t: Transaction) {
@@ -389,14 +497,10 @@ export default function Transacoes() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tipo: t.tipo,
-        descricao: t.descricao,
-        produto: t.produto,
-        categoria: t.categoria,
-        quantidade: t.quantidade,
-        valor_unitario: t.valorUnitario,
-        valor_total: t.valorTotal,
-        forma_pagamento: t.formaPagamento,
+        tipo: t.tipo, descricao: t.descricao, produto: t.produto,
+        categoria: t.categoria, quantidade: t.quantidade,
+        valor_unitario: t.valorUnitario, valor_total: t.valorTotal,
+        forma_pagamento: t.formaPagamento, observacoes: t.observacoes,
         data: new Date().toISOString().split("T")[0],
       }),
     });
@@ -412,27 +516,126 @@ export default function Transacoes() {
     setExporting(false);
   }
 
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected(selected.size === filtered.length && filtered.length > 0 ? new Set() : new Set(filtered.map((t) => t.id)));
+  }
+
   function resetFilters() {
-    setTipo(""); setCategoria(""); setBusca(""); setDataInicio(""); setDataFim(""); setClienteId(""); setFornecedorId(""); setPage(1);
+    setTipo(""); setCategoria(""); setBusca(""); setDataInicio(""); setDataFim("");
+    setClienteId(""); setFornecedorId(""); setStatusFilter(""); setPage(1);
+  }
+
+  // Group rows by day or month
+  type Group = { key: string; items: Transaction[] };
+  function groupRows(rows: Transaction[]): Group[] {
+    const groups: Group[] = [];
+    for (const t of rows) {
+      const key = agrupar === "dia"
+        ? formatDate(t.data)
+        : new Date(t.data).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.items.push(t);
+      else groups.push({ key, items: [t] });
+    }
+    return groups;
+  }
+
+  function renderRow(t: Transaction) {
+    const isSelected = selected.has(t.id);
+    return (
+      <tr key={t.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : ""}`}>
+        <td className="px-4 py-3 w-8">
+          <button onClick={() => toggleSelect(t.id)} className="text-gray-400 hover:text-green-500 transition-colors">
+            {isSelected ? <CheckSquare size={16} className="text-green-500" /> : <Square size={16} />}
+          </button>
+        </td>
+        <td className="px-4 py-3 max-w-xs">
+          <p className="font-medium text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
+            {t.descricao}
+            {t.recorrente && <Repeat size={12} className="text-blue-400 shrink-0" title="Recorrente" />}
+            {t.comprovanteUrl && (
+              <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" title="Ver comprovante" onClick={(e) => e.stopPropagation()}>
+                <Paperclip size={12} className="text-gray-400 hover:text-green-500 shrink-0" />
+              </a>
+            )}
+          </p>
+          {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+          {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+          {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
+            <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
+        </td>
+        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
+        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
+        <td className="px-4 py-3">
+          <StatusBadge status={t.statusPagamento} onClick={t.statusPagamento ? () => handleTogglePago(t) : undefined} />
+        </td>
+        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+          <p>{formatDate(t.data)}</p>
+          {t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
+          {t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
+        </td>
+        <td className="px-4 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-1">
+            <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Pencil size={14} /></button>
+            <button onClick={() => handleDuplicate(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar"><Copy size={14} /></button>
+            <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
+          </div>
+        </td>
+      </tr>
+    );
   }
 
   return (
     <div>
-      {deleteId && <ConfirmModal onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />}
       {editTransaction && <EditModal transaction={editTransaction} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
+      {toast && <ToastUndo message={toast.message} onUndo={toast.onUndo} onDismiss={dismissToast} />}
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-3 rounded-xl shadow-2xl text-sm whitespace-nowrap">
+          <span className="font-medium">{selected.size} selecionada{selected.size > 1 ? "s" : ""}</span>
+          <button onClick={handleBulkPago} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium transition-colors">
+            <CheckCircle2 size={13} /> Marcar pagas
+          </button>
+          <button onClick={handleBulkDeleteWithUndo} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors">
+            <Trash2 size={13} /> Excluir
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-white dark:hover:text-gray-900 text-lg leading-none">×</button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transações</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAgrupar((v) => v === "" ? "dia" : v === "dia" ? "mes" : "")}
+            title={agrupar === "" ? "Agrupar por dia" : agrupar === "dia" ? "Agrupar por mês" : "Sem agrupamento"}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${agrupar ? "border-green-500 text-green-600 dark:text-green-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+          >
+            <Layers size={15} />
+            <span className="hidden sm:inline">{agrupar === "dia" ? "Por dia" : agrupar === "mes" ? "Por mês" : "Agrupar"}</span>
+          </button>
           <button onClick={handleExport} disabled={exporting}
             className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
             <Download size={15} />
             <span className="hidden sm:inline">{exporting ? "Exportando..." : "CSV"}</span>
           </button>
           <Link href="/nova" className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-            <PlusCircle size={16} />
-            Nova
+            <PlusCircle size={16} /> Nova
           </Link>
         </div>
       </div>
@@ -480,9 +683,13 @@ export default function Transacoes() {
             <option value="">Todas as categorias</option>
             {CATEGORIAS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
           </select>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            <option value="">Todos os status</option>
+            <option value="pago">Pago</option>
+            <option value="pendente">Pendente</option>
+          </select>
         </div>
-
-        {/* Filtro de período */}
         <div className="flex flex-col sm:flex-row gap-3 items-end">
           <div className="flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
@@ -530,37 +737,41 @@ export default function Transacoes() {
           </div>
         ) : (
           filtered.map((t) => (
-            <div key={t.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+            <div key={t.id} onClick={() => toggleSelect(t.id)}
+              className={`bg-white dark:bg-gray-900 rounded-xl border p-4 cursor-pointer transition-colors ${selected.has(t.id) ? "border-green-500 dark:border-green-600" : "border-gray-200 dark:border-gray-800"}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{t.descricao}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{t.descricao}</p>
+                    {t.recorrente && <Repeat size={12} className="text-blue-400 shrink-0" />}
+                    {t.comprovanteUrl && (
+                      <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                        <Paperclip size={12} className="text-gray-400 hover:text-green-500 shrink-0" />
+                      </a>
+                    )}
+                  </div>
                   {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+                  {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
                   <button onClick={() => setEditTransaction(t)} className="p-1 text-gray-400 hover:text-green-500 transition-colors"><Pencil size={14} /></button>
-                  <button onClick={() => handleDuplicate(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors" title="Duplicar"><Copy size={14} /></button>
-                  <button onClick={() => setDeleteId(t.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                  <button onClick={() => handleDuplicate(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
+                  <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-gray-400">
                   {formatDate(t.data)}
                   {t.categoria && ` • ${t.categoria}`}
                   {t.formaPagamento && ` • ${t.formaPagamento}`}
                   {t.cliente && ` • ${t.cliente.nome}`}
                   {t.fornecedor && ` • ${t.fornecedor.nome}`}
-                  {t.statusPagamento && (
-                    <span className={`ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                      t.statusPagamento === "pago"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
-                    }`}>
-                      {t.statusPagamento === "pago" ? "Pago" : "Pendente"}
-                    </span>
-                  )}
                 </p>
-                <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  {t.statusPagamento && <StatusBadge status={t.statusPagamento} onClick={() => handleTogglePago(t)} />}
+                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</p>
+                </div>
               </div>
             </div>
           ))
@@ -575,69 +786,55 @@ export default function Transacoes() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descrição</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoria</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pagamento</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Data</th>
-                <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Valor</th>
-                <th className="px-5 py-3" />
+                <th className="px-4 py-3 w-8">
+                  <button onClick={toggleSelectAll} className="text-gray-400 hover:text-green-500 transition-colors">
+                    {selected.size === filtered.length && filtered.length > 0
+                      ? <CheckSquare size={16} className="text-green-500" />
+                      : <Square size={16} />}
+                  </button>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <button onClick={() => toggleSort("descricao")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
+                    Descrição <SortIcon col="descricao" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <button onClick={() => toggleSort("tipo")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
+                    Tipo <SortIcon col="tipo" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoria</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pagamento</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <button onClick={() => toggleSort("data")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
+                    Data <SortIcon col="data" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <button onClick={() => toggleSort("valorTotal")} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
+                    Valor <SortIcon col="valorTotal" sortBy={sortBy} sortDir={sortDir} />
+                  </button>
+                </th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filtered.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-5 py-3">
-                    <p className="font-medium text-gray-800 dark:text-gray-100">{t.descricao}</p>
-                    {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-                    {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
-                      <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
-                    )}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
-                  </td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
-                  <td className="px-5 py-3">
-                    {t.statusPagamento ? (
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        t.statusPagamento === "pago"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                          : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400"
-                      }`}>
-                        {t.statusPagamento === "pago" ? "Pago" : "Pendente"}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
-                    <p>{formatDate(t.data)}</p>
-                    {t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
-                    {t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
-                  </td>
-                  <td className="px-5 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => handleDuplicate(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar">
-                        <Copy size={14} />
-                      </button>
-                      <button onClick={() => setDeleteId(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {agrupar ? (
+                groupRows(filtered).flatMap(({ key, items }) => [
+                  <tr key={`group-${key}`} className="bg-gray-50 dark:bg-gray-800/60">
+                    <td colSpan={9} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 capitalize">
+                      {key}
+                    </td>
+                  </tr>,
+                  ...items.map(renderRow),
+                ])
+              ) : (
+                filtered.map(renderRow)
+              )}
             </tbody>
           </table>
         )}
-
         {totalPages > 1 && filtered.length > 0 && (
           <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
         )}

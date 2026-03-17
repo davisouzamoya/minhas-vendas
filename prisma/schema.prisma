@@ -19,6 +19,8 @@ model Transaction {
   formaPagamento   String?
   statusPagamento  String?
   recorrente       Boolean   @default(false)
+  observacoes      String?
+  comprovanteUrl   String?
   data             DateTime
   mensagemOriginal String?
   clienteId        Int?
