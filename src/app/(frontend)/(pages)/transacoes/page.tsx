@@ -52,22 +52,18 @@ export default function Transacoes() {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (tipo) params.set("tipo", tipo);
     if (categoria) params.set("categoria", categoria);
-
     const res = await fetch(`/api/transactions?${params}`);
     const json = await res.json();
     setTransactions(json.transactions);
     setTotal(json.total);
   }, [page, tipo, categoria]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = busca
-    ? transactions.filter(
-        (t) =>
-          t.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-          t.produto?.toLowerCase().includes(busca.toLowerCase())
+    ? transactions.filter((t) =>
+        t.descricao.toLowerCase().includes(busca.toLowerCase()) ||
+        t.produto?.toLowerCase().includes(busca.toLowerCase())
       )
     : transactions;
 
@@ -75,6 +71,7 @@ export default function Transacoes() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transações</h1>
         <Link
@@ -87,8 +84,8 @@ export default function Transacoes() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
@@ -101,7 +98,7 @@ export default function Transacoes() {
         <select
           value={tipo}
           onChange={(e) => { setTipo(e.target.value); setPage(1); }}
-          className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <option value="">Todos os tipos</option>
           <option value="venda">Venda</option>
@@ -112,7 +109,7 @@ export default function Transacoes() {
         <select
           value={categoria}
           onChange={(e) => { setCategoria(e.target.value); setPage(1); }}
-          className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <option value="">Todas as categorias</option>
           {["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"].map((c) => (
@@ -121,8 +118,39 @@ export default function Transacoes() {
         </select>
       </div>
 
-      {/* Tabela */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {filtered.length === 0 ? (
+          <p className="text-center text-sm text-gray-400 py-10">Nenhuma transação encontrada.</p>
+        ) : (
+          filtered.map((t) => (
+            <div key={t.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.descricao}</p>
+                  {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${tipoCor[t.tipo]}`}>
+                  {tipoLabel[t.tipo]}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">
+                  {formatDate(t.data)}
+                  {t.categoria && ` • ${t.categoria}`}
+                  {t.formaPagamento && ` • ${t.formaPagamento}`}
+                </p>
+                <p className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                  {formatCurrency(t.valorTotal)}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: tabela */}
+      <div className="hidden md:block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 dark:border-gray-800">
@@ -153,50 +181,39 @@ export default function Transacoes() {
                       {tipoLabel[t.tipo]}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">
-                    {t.categoria ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">
-                    {t.formaPagamento ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400">
-                    {formatDate(t.data)}
-                  </td>
-                  <td className="px-5 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">
-                    {formatCurrency(t.valorTotal)}
-                  </td>
+                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
+                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
+                  <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{formatDate(t.data)}</td>
+                  <td className="px-5 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
 
-        {/* Paginação */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800">
             <p className="text-xs text-gray-400">{total} registros</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Anterior
-              </button>
-              <span className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Próxima
-              </button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">Anterior</button>
+              <span className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400">{page} / {totalPages}</span>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">Próxima</button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Paginação mobile */}
+      {totalPages > 1 && (
+        <div className="flex md:hidden items-center justify-between mt-4">
+          <p className="text-xs text-gray-400">{total} registros</p>
+          <div className="flex gap-2">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">Anterior</button>
+            <span className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400">{page} / {totalPages}</span>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">Próxima</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
