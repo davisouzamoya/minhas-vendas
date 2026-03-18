@@ -15,6 +15,7 @@ interface ReportData {
   inadimplencia: { clienteId: number | null; nome: string; total: number; count: number; ids: number[]; diasEmAtraso: number }[];
   totalInadimplencia: number;
   rankingClientes: { clienteId: number | null; nome: string; total: number; transacoes: number; ticketMedio: number }[];
+  porFormaPagamento: { forma: string; total: number; count: number }[];
 }
 
 interface Perfil { nomeNegocio: string; logoUrl: string | null; }
@@ -204,6 +205,36 @@ export default function Relatorios() {
             ))}
           </div>
           <p className="text-xs text-gray-400 mt-3">Vendas com status "pendente". Marque como pagas na tela de Transações.</p>
+        </div>
+      )}
+
+      {/* Forma de Pagamento */}
+      {data.porFormaPagamento.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Formas de Pagamento</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={data.porFormaPagamento} dataKey="total" nameKey="forma" cx="50%" cy="50%" outerRadius={85}
+                  label={({ name }) => String(name).charAt(0).toUpperCase() + String(name).slice(1)}>
+                  {data.porFormaPagamento.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2">
+              {data.porFormaPagamento.map((f, i) => (
+                <div key={f.forma} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 capitalize">{f.forma}</span>
+                    <span className="text-xs text-gray-400">({f.count}x)</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(f.total)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

@@ -86,5 +86,30 @@ export async function GET() {
 
   const chartData = Object.entries(chartMap).map(([mes, vals]) => ({ mes, ...vals }));
 
-  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo });
+  // Aniversários nos próximos 7 dias
+  const todosClientes = await prisma.cliente.findMany({
+    where: { userId, aniversario: { not: null } },
+    select: { id: true, nome: true, aniversario: true, telefone: true },
+  });
+
+  const hoje = new Date();
+  const aniversariantes = todosClientes.filter((c) => {
+    if (!c.aniversario) return false;
+    const aniv = new Date(c.aniversario);
+    // Compara mês e dia nos próximos 7 dias
+    for (let i = 0; i <= 7; i++) {
+      const d = new Date(hoje);
+      d.setDate(d.getDate() + i);
+      if (aniv.getMonth() === d.getMonth() && aniv.getDate() === d.getDate()) return true;
+    }
+    return false;
+  }).map((c) => {
+    const aniv = new Date(c.aniversario!);
+    const proxAniv = new Date(hoje.getFullYear(), aniv.getMonth(), aniv.getDate());
+    if (proxAniv < hoje) proxAniv.setFullYear(proxAniv.getFullYear() + 1);
+    const diasRestantes = Math.round((proxAniv.getTime() - hoje.getTime()) / 86400000);
+    return { id: c.id, nome: c.nome, telefone: c.telefone, diasRestantes };
+  }).sort((a, b) => a.diasRestantes - b.diasRestantes);
+
+  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes });
 }

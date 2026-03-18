@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   const baseWhere = { userId, ...dateFilter };
 
-  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw, inadimplenciaRaw, rankingRaw] = await Promise.all([
+  const [porCategoriaRaw, porTipoRaw, todasTransacoes, porProdutoRaw, inadimplenciaRaw, rankingRaw, porFormaPagamentoRaw] = await Promise.all([
     prisma.transaction.groupBy({
       by: ["categoria"],
       where: { ...baseWhere, categoria: { not: null } },
@@ -54,6 +54,13 @@ export async function GET(request: NextRequest) {
     prisma.transaction.groupBy({
       by: ["clienteId"],
       where: { ...baseWhere, clienteId: { not: null }, tipo: { in: ["venda", "entrada"] } },
+      _sum: { valorTotal: true },
+      _count: true,
+      orderBy: { _sum: { valorTotal: "desc" } },
+    }),
+    prisma.transaction.groupBy({
+      by: ["formaPagamento"],
+      where: { ...baseWhere, formaPagamento: { not: null } },
       _sum: { valorTotal: true },
       _count: true,
       orderBy: { _sum: { valorTotal: "desc" } },
@@ -131,5 +138,11 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto, inadimplencia, totalInadimplencia, rankingClientes });
+  const porFormaPagamento = porFormaPagamentoRaw.map((r) => ({
+    forma: r.formaPagamento ?? "outro",
+    total: (r._sum as { valorTotal: number | null }).valorTotal ?? 0,
+    count: (r as { _count: number })._count,
+  }));
+
+  return NextResponse.json({ porCategoria, porTipo, porMes, lucroPorProduto, inadimplencia, totalInadimplencia, rankingClientes, porFormaPagamento });
 }

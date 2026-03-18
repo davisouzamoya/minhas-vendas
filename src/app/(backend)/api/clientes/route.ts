@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
         nome: body.nome,
         telefone: body.telefone ?? null,
         email: body.email ?? null,
+        aniversario: body.aniversario ? new Date(body.aniversario) : null,
       },
     });
 

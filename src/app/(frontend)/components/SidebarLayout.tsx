@@ -12,6 +12,7 @@ import {
   Sun,
   Moon,
   TrendingUp,
+  Activity,
   X,
   Menu,
   PanelLeftClose,
@@ -30,6 +31,7 @@ const nav = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity },
   { href: "/perfil", label: "Perfil", icon: Settings },
 ];
 

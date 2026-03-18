@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
       statusPagamento: body.statusPagamento ?? null,
       observacoes: body.observacoes ?? null,
       comprovanteUrl: body.comprovanteUrl ?? null,
+      fotoUrl: body.fotoUrl ?? null,
       recorrente: body.recorrente ?? false,
     };
 

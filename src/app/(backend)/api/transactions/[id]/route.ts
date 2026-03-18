@@ -36,6 +36,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         statusPagamento: body.statusPagamento ?? null,
         observacoes: body.observacoes ?? null,
         comprovanteUrl: body.comprovanteUrl ?? null,
+        fotoUrl: body.fotoUrl ?? null,
         data: new Date(body.data),
       },
     });

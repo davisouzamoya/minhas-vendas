@@ -1,18 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ImagePlus, X } from "lucide-react";
+import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
 const CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
+const DRAFT_KEY = "nova_transacao_rascunho";
 
 type Tipo = (typeof TIPOS)[number];
 
 interface Cliente { id: number; nome: string; }
 interface Fornecedor { id: number; nome: string; }
+
+const defaultForm = {
+  tipo: "venda" as Tipo,
+  produto: "",
+  categoria: "",
+  quantidade: "",
+  valor_unitario: "",
+  valor_total: "",
+  forma_pagamento: "",
+  data: new Date().toISOString().split("T")[0],
+  clienteId: "",
+  fornecedorId: "",
+  statusPagamento: "",
+  observacoes: "",
+  comprovanteUrl: "",
+  fotoUrl: "",
+  recorrente: false,
+  meses: 3,
+};
 
 export default function NovaTransacao() {
   const router = useRouter();
@@ -20,29 +41,59 @@ export default function NovaTransacao() {
   const [success, setSuccess] = useState(false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [fotoPreview, setFotoPreview] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
 
-  const [form, setForm] = useState({
-    tipo: "venda" as Tipo,
-    produto: "",
-    categoria: "",
-    quantidade: "",
-    valor_unitario: "",
-    valor_total: "",
-    forma_pagamento: "",
-    data: new Date().toISOString().split("T")[0],
-    clienteId: "",
-    fornecedorId: "",
-    statusPagamento: "",
-    observacoes: "",
-    comprovanteUrl: "",
-    recorrente: false,
-    meses: 3,
-  });
+  const [form, setForm] = useState(defaultForm);
+
+  // On mount: check for saved draft
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Only show banner if form has meaningful content
+        if (parsed.produto || parsed.valor_total || parsed.observacoes) {
+          setHasDraft(true);
+        }
+      } catch {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
   }, []);
+
+  // Auto-save draft on form changes (debounced via useEffect)
+  useEffect(() => {
+    // Don't save empty default forms
+    if (form.produto || form.valor_total || form.observacoes || form.fotoUrl) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+    }
+  }, [form]);
+
+  function restoreDraft() {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setForm({ ...defaultForm, ...parsed });
+        if (parsed.fotoUrl) setFotoPreview(parsed.fotoUrl);
+      } catch { /* ignore */ }
+    }
+    setHasDraft(false);
+  }
+
+  function discardDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+  }
 
   function set(field: string, value: string) {
     setForm((prev) => {
@@ -52,7 +103,6 @@ export default function NovaTransacao() {
         const unit = parseFloat(field === "valor_unitario" ? value : prev.valor_unitario) || 0;
         if (qty > 0 && unit > 0) next.valor_total = (qty * unit).toFixed(2);
       }
-      // Limpa campos ao trocar tipo
       if (field === "tipo") {
         next.clienteId = "";
         next.fornecedorId = "";
@@ -61,6 +111,39 @@ export default function NovaTransacao() {
       }
       return next;
     });
+  }
+
+  async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setFotoPreview(localUrl);
+
+    setUploadingFoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("fotos").upload(fileName, file, { upsert: false });
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage.from("fotos").getPublicUrl(fileName);
+      setForm((prev) => ({ ...prev, fotoUrl: urlData.publicUrl }));
+      setFotoPreview(urlData.publicUrl);
+    } catch (err) {
+      console.error("Erro ao fazer upload da foto:", err);
+      setFotoPreview("");
+      setForm((prev) => ({ ...prev, fotoUrl: "" }));
+    } finally {
+      setUploadingFoto(false);
+    }
+  }
+
+  function removeFoto() {
+    setFotoPreview("");
+    setForm((prev) => ({ ...prev, fotoUrl: "" }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   const usaCliente = form.tipo === "venda" || form.tipo === "entrada";
@@ -88,6 +171,7 @@ export default function NovaTransacao() {
         statusPagamento: form.statusPagamento || null,
         observacoes: form.observacoes || null,
         comprovanteUrl: form.comprovanteUrl || null,
+        fotoUrl: form.fotoUrl || null,
         recorrente: form.recorrente,
         meses: form.recorrente ? form.meses : 1,
       }),
@@ -95,6 +179,7 @@ export default function NovaTransacao() {
     setLoading(false);
 
     if (res.ok) {
+      localStorage.removeItem(DRAFT_KEY);
       setSuccess(true);
       setTimeout(() => router.push("/transacoes"), 1500);
     }
@@ -113,6 +198,25 @@ export default function NovaTransacao() {
   return (
     <div className="w-full">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Nova Transação</h1>
+
+      {/* Draft restore banner */}
+      {hasDraft && (
+        <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
+          <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+            Você tem um rascunho salvo. Deseja restaurar?
+          </p>
+          <div className="flex gap-2">
+            <button onClick={restoreDraft}
+              className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors">
+              Restaurar
+            </button>
+            <button onClick={discardDraft}
+              className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline">
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-5">
 
@@ -193,6 +297,43 @@ export default function NovaTransacao() {
               {CATEGORIAS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
             </select>
           </div>
+        </div>
+
+        {/* Foto do produto */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do Produto</label>
+          {fotoPreview ? (
+            <div className="relative inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={fotoPreview} alt="Foto do produto" className="w-32 h-32 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
+              {uploadingFoto && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {!uploadingFoto && (
+                <button type="button" onClick={removeFoto}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingFoto}
+              className="flex flex-col items-center justify-center w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 text-gray-400 dark:text-gray-600 hover:text-green-600 dark:hover:text-green-500 transition-colors gap-2">
+              <ImagePlus size={24} />
+              <span className="text-xs">Adicionar foto</span>
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFotoUpload}
+            className="hidden"
+          />
+          <p className="text-xs text-gray-400 mt-1">Formatos: JPG, PNG, WEBP (máx. 5MB)</p>
         </div>
 
         {/* Quantidade + Valor unitário + Total */}
@@ -295,9 +436,9 @@ export default function NovaTransacao() {
           <p className="text-xs text-gray-400 mt-1">Cole a URL do comprovante (imagem, PDF, etc.)</p>
         </div>
 
-        <button type="submit" disabled={loading}
+        <button type="submit" disabled={loading || uploadingFoto}
           className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-50">
-          {loading ? "Salvando..." : "Salvar Transação"}
+          {loading ? "Salvando..." : uploadingFoto ? "Aguardando upload..." : "Salvar Transação"}
         </button>
       </form>
     </div>

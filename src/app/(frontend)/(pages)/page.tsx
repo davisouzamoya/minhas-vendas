@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, Cake, Phone } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -36,12 +37,20 @@ interface Transaction {
   data: string;
 }
 
+interface Aniversariante {
+  id: number;
+  nome: string;
+  telefone: string | null;
+  diasRestantes: number;
+}
+
 interface DashboardData {
   summary: Summary;
   saldo: number;
   recentes: Transaction[];
   chartData: { mes: string; vendas: number; despesas: number }[];
   comparativo: Comparativo;
+  aniversariantes: Aniversariante[];
 }
 
 const tipoCor: Record<string, string> = {
@@ -170,6 +179,36 @@ export default function Dashboard() {
               <Area type="monotone" dataKey="despesas" stroke="#dc2626" fill="url(#despesas)" name="Despesas" />
             </AreaChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Aniversariantes */}
+      {data?.aniversariantes && data.aniversariantes.length > 0 && (
+        <div className="bg-pink-50 dark:bg-pink-900/10 border border-pink-200 dark:border-pink-800 rounded-xl p-5 mb-8">
+          <h2 className="text-base font-semibold text-pink-700 dark:text-pink-400 mb-3 flex items-center gap-2">
+            <Cake size={16} /> Aniversários nos próximos 7 dias
+          </h2>
+          <div className="flex flex-col gap-2">
+            {data.aniversariantes.map((a) => (
+              <div key={a.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{a.nome}</span>
+                  {a.telefone && (
+                    <a href={`https://wa.me/55${a.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1 text-xs text-green-600 hover:underline">
+                      <Phone size={11} /> {a.telefone}
+                    </a>
+                  )}
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${a.diasRestantes === 0 ? "bg-pink-500 text-white" : "bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300"}`}>
+                  {a.diasRestantes === 0 ? "Hoje!" : a.diasRestantes === 1 ? "Amanhã" : `em ${a.diasRestantes} dias`}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Link href="/clientes" className="text-xs text-pink-600 hover:underline mt-3 inline-block">
+            Ver todos os clientes →
+          </Link>
         </div>
       )}
 

@@ -21,6 +21,7 @@ model Transaction {
   recorrente       Boolean   @default(false)
   observacoes      String?
   comprovanteUrl   String?
+  fotoUrl          String?
   data             DateTime
   mensagemOriginal String?
   clienteId        Int?
@@ -35,12 +36,13 @@ model Transaction {
 }
 
 model Cliente {
-  id        Int           @id @default(autoincrement())
-  userId    String
-  nome      String
-  telefone  String?
-  email     String?
-  createdAt DateTime      @default(now())
+  id          Int           @id @default(autoincrement())
+  userId      String
+  nome        String
+  telefone    String?
+  email       String?
+  aniversario DateTime?     @db.Date
+  createdAt   DateTime      @default(now())
 
   transacoes Transaction[]
 

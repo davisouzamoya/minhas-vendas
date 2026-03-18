@@ -22,6 +22,7 @@ interface Transaction {
   statusPagamento: string | null;
   observacoes: string | null;
   comprovanteUrl: string | null;
+  fotoUrl: string | null;
   recorrente: boolean;
   data: string;
   createdAt: string;
@@ -117,7 +118,7 @@ type EditForm = {
   tipo: string; descricao: string; produto: string; categoria: string;
   quantidade: string; valor_unitario: string; valor_total: string;
   forma_pagamento: string; statusPagamento: string;
-  observacoes: string; comprovanteUrl: string; data: string;
+  observacoes: string; comprovanteUrl: string; fotoUrl: string; data: string;
 };
 
 function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction; onSave: () => void; onCancel: () => void }) {
@@ -133,6 +134,7 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
     statusPagamento: transaction.statusPagamento ?? "",
     observacoes: transaction.observacoes ?? "",
     comprovanteUrl: transaction.comprovanteUrl ?? "",
+    fotoUrl: transaction.fotoUrl ?? "",
     data: toInputDate(transaction.data),
   });
   const [saving, setSaving] = useState(false);
@@ -166,6 +168,7 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
         statusPagamento: form.statusPagamento || null,
         observacoes: form.observacoes || null,
         comprovanteUrl: form.comprovanteUrl || null,
+        fotoUrl: form.fotoUrl || null,
       }),
     });
     setSaving(false);
@@ -273,6 +276,15 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
               placeholder="https://..."
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
+
+          {transaction.fotoUrl && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do Produto</label>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={transaction.fotoUrl} alt="Foto do produto" className="w-28 h-28 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
+              <p className="text-xs text-gray-400 mt-1">Para alterar a foto, crie uma nova transação.</p>
+            </div>
+          )}
 
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -474,7 +486,7 @@ export default function Transacoes() {
         valor_unitario: t.valorUnitario, valor_total: t.valorTotal,
         forma_pagamento: t.formaPagamento, statusPagamento: next,
         observacoes: t.observacoes, comprovanteUrl: t.comprovanteUrl,
-        data: toInputDate(t.data),
+        fotoUrl: t.fotoUrl, data: toInputDate(t.data),
       }),
     });
     load();
@@ -549,15 +561,23 @@ export default function Transacoes() {
         <td className="px-4 py-3 max-w-xs">
           <p className="font-medium text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
             {t.descricao}
-            {t.recorrente && <Repeat size={12} className="text-blue-400 shrink-0" title="Recorrente" />}
+            {t.recorrente && <span title="Recorrente"><Repeat size={12} className="text-blue-400 shrink-0" /></span>}
             {t.comprovanteUrl && (
               <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" title="Ver comprovante" onClick={(e) => e.stopPropagation()}>
                 <Paperclip size={12} className="text-gray-400 hover:text-green-500 shrink-0" />
               </a>
             )}
           </p>
-          {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-          {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+          <div className="flex items-start gap-2">
+            {t.fotoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5" />
+            )}
+            <div>
+              {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+              {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+            </div>
+          </div>
           {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
             <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
           )}
@@ -739,8 +759,16 @@ export default function Transacoes() {
                       </a>
                     )}
                   </div>
-                  {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-                  {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+                  <div className="flex items-start gap-2 mt-0.5">
+                    {t.fotoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0" />
+                    )}
+                    <div>
+                      {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+                      {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
