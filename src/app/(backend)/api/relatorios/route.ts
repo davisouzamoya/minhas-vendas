@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     }),
     prisma.transaction.findMany({
       where: { userId, tipo: "venda", statusPagamento: "pendente", ...dateFilter },
-      include: { cliente: { select: { id: true, nome: true } }, fornecedor: false },
+      include: { cliente: { select: { id: true, nome: true, telefone: true } }, fornecedor: false },
       orderBy: { data: "asc" },
     }),
     prisma.transaction.groupBy({
@@ -103,11 +103,13 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.lucro - a.lucro);
 
   // Inadimplência: agrupa por cliente
-  const inadimplenciaMap: Record<string, { clienteId: number | null; nome: string; total: number; count: number; ids: number[]; minData: Date }> = {};
-  for (const t of inadimplenciaRaw) {
+  const inadimplenciaMap: Record<string, { clienteId: number | null; nome: string; telefone: string | null; total: number; count: number; ids: number[]; minData: Date }> = {};
+  type InadimplenciaItem = { id: number; valorTotal: number; data: Date; cliente: { id: number; nome: string; telefone: string | null } | null };
+  for (const t of inadimplenciaRaw as unknown as InadimplenciaItem[]) {
     const key = t.cliente ? String(t.cliente.id) : "sem_cliente";
     const nome = t.cliente?.nome ?? "Sem cliente";
-    if (!inadimplenciaMap[key]) inadimplenciaMap[key] = { clienteId: t.cliente?.id ?? null, nome, total: 0, count: 0, ids: [], minData: t.data };
+    const telefone = t.cliente?.telefone ?? null;
+    if (!inadimplenciaMap[key]) inadimplenciaMap[key] = { clienteId: t.cliente?.id ?? null, nome, telefone, total: 0, count: 0, ids: [], minData: t.data };
     inadimplenciaMap[key].total += t.valorTotal;
     inadimplenciaMap[key].count += 1;
     inadimplenciaMap[key].ids.push(t.id);

@@ -14,6 +14,9 @@ export async function GET() {
   const mesAnteriorInicio = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const mesAnteriorFim = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
+  const quarentaCincoDiasAtras = new Date();
+  quarentaCincoDiasAtras.setDate(quarentaCincoDiasAtras.getDate() - 45);
+
   const [transactions, totals, totaisMesAtual, totaisMesAnterior] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId },
@@ -111,5 +114,37 @@ export async function GET() {
     return { id: c.id, nome: c.nome, telefone: c.telefone, diasRestantes };
   }).sort((a, b) => a.diasRestantes - b.diasRestantes);
 
-  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes });
+  // Clientes em risco de churn: 2+ compras, sem comprar há 45+ dias
+  const churnRaw = await prisma.transaction.groupBy({
+    by: ["clienteId"],
+    where: { userId, clienteId: { not: null }, tipo: { in: ["venda", "entrada"] } },
+    _count: { clienteId: true },
+    _max: { data: true },
+  });
+
+  const churnCandidatos = churnRaw.filter(
+    (r) => (r._count as { clienteId: number }).clienteId >= 2 &&
+      r._max.data && new Date(r._max.data) < quarentaCincoDiasAtras
+  );
+
+  const churnClienteIds = churnCandidatos.map((r) => r.clienteId as number);
+  const churnClientesNomes = churnClienteIds.length > 0
+    ? await prisma.cliente.findMany({ where: { id: { in: churnClienteIds } }, select: { id: true, nome: true, telefone: true } })
+    : [];
+  const churnClienteMap = Object.fromEntries(churnClientesNomes.map((c) => [c.id, c]));
+
+  const clientesChurn = churnCandidatos.map((r) => {
+    const cliente = churnClienteMap[r.clienteId as number];
+    const ultimaCompra = r._max.data!;
+    const diasSemComprar = Math.floor((now.getTime() - new Date(ultimaCompra).getTime()) / 86400000);
+    return {
+      id: r.clienteId as number,
+      nome: cliente?.nome ?? "Desconhecido",
+      telefone: cliente?.telefone ?? null,
+      ultimaCompra: ultimaCompra.toISOString(),
+      diasSemComprar,
+    };
+  }).sort((a, b) => b.diasSemComprar - a.diasSemComprar);
+
+  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes, clientesChurn });
 }

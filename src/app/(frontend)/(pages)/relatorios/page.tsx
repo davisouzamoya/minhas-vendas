@@ -5,14 +5,14 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
-import { Printer, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Printer, AlertTriangle, CheckCircle2, MessageCircle } from "lucide-react";
 
 interface ReportData {
   porCategoria: { categoria: string; total: number }[];
   porTipo: { tipo: string; total: number; count: number }[];
   porMes: { mes: string; vendas: number; despesas: number; entradas: number }[];
   lucroPorProduto: { produto: string; receita: number; custo: number; lucro: number; transacoes: number }[];
-  inadimplencia: { clienteId: number | null; nome: string; total: number; count: number; ids: number[]; diasEmAtraso: number }[];
+  inadimplencia: { clienteId: number | null; nome: string; telefone: string | null; total: number; count: number; ids: number[]; diasEmAtraso: number }[];
   totalInadimplencia: number;
   rankingClientes: { clienteId: number | null; nome: string; total: number; transacoes: number; ticketMedio: number }[];
   porFormaPagamento: { forma: string; total: number; count: number }[];
@@ -28,6 +28,15 @@ const tipoLabel: Record<string, string> = {
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function cobrarWhatsApp(nome: string, total: number, count: number, telefone: string | null) {
+  const mensagem = `Oi ${nome}, tudo bem? 😊 Passando pra lembrar que temos ${count} venda${count !== 1 ? "s" : ""} pendente${count !== 1 ? "s" : ""} no valor de ${formatCurrency(total)}. Quando puder, me avisa! Obrigado.`;
+  const numero = telefone ? telefone.replace(/\D/g, "") : "";
+  const url = numero
+    ? `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+  window.open(url, "_blank");
 }
 
 export default function Relatorios() {
@@ -195,14 +204,24 @@ export default function Relatorios() {
                   </p>
                 </div>
                 <p className="text-sm font-bold text-orange-600 dark:text-orange-400 shrink-0">{formatCurrency(i.total)}</p>
-                <button
-                  onClick={() => marcarPago(i.ids)}
-                  disabled={pagando !== null}
-                  className="print:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
-                >
-                  <CheckCircle2 size={13} />
-                  {pagando?.toString() === i.ids.toString() ? "Salvando..." : "Marcar pago"}
-                </button>
+                <div className="print:hidden flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => cobrarWhatsApp(i.nome, i.total, i.count, i.telefone)}
+                    title={i.telefone ? `Cobrar via WhatsApp (${i.telefone})` : "Cobrar via WhatsApp (sem telefone cadastrado)"}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-lg transition-colors"
+                  >
+                    <MessageCircle size={13} />
+                    Cobrar
+                  </button>
+                  <button
+                    onClick={() => marcarPago(i.ids)}
+                    disabled={pagando !== null}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={13} />
+                    {pagando?.toString() === i.ids.toString() ? "Salvando..." : "Marcar pago"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

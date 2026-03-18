@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, Cake, Phone } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, Cake, Phone, UserX, MessageCircle } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -44,6 +44,14 @@ interface Aniversariante {
   diasRestantes: number;
 }
 
+interface ClienteChurn {
+  id: number;
+  nome: string;
+  telefone: string | null;
+  ultimaCompra: string;
+  diasSemComprar: number;
+}
+
 interface DashboardData {
   summary: Summary;
   saldo: number;
@@ -51,6 +59,7 @@ interface DashboardData {
   chartData: { mes: string; vendas: number; despesas: number }[];
   comparativo: Comparativo;
   aniversariantes: Aniversariante[];
+  clientesChurn: ClienteChurn[];
 }
 
 const tipoCor: Record<string, string> = {
@@ -223,6 +232,38 @@ export default function Dashboard() {
             ))}
           </div>
           <Link href="/clientes" className="text-xs text-pink-600 hover:underline mt-3 inline-block">
+            Ver todos os clientes →
+          </Link>
+        </div>
+      )}
+
+      {/* Clientes em risco de churn */}
+      {data?.clientesChurn && data.clientesChurn.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-5 mb-8">
+          <h2 className="text-base font-semibold text-amber-700 dark:text-amber-400 mb-3 flex items-center gap-2">
+            <UserX size={16} /> Clientes que sumiram
+          </h2>
+          <div className="flex flex-col gap-2">
+            {data.clientesChurn.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{c.nome}</span>
+                  <span className="text-xs text-amber-600 dark:text-amber-400 ml-2">· {c.diasSemComprar} dias sem comprar</span>
+                  <p className="text-xs text-gray-400">Última compra: {new Date(c.ultimaCompra).toLocaleDateString("pt-BR")}</p>
+                </div>
+                {c.telefone && (
+                  <a
+                    href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Oi ${c.nome}, faz um tempo que não te vejo! Tem novidades, vem dar uma olhada 😊`)}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-lg transition-colors shrink-0"
+                  >
+                    <MessageCircle size={12} /> Reconquistar
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+          <Link href="/clientes" className="text-xs text-amber-600 hover:underline mt-3 inline-block">
             Ver todos os clientes →
           </Link>
         </div>

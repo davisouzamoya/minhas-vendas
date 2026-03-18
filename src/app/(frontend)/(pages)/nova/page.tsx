@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, ImagePlus, X } from "lucide-react";
+import { CheckCircle, ImagePlus, X, AlertTriangle } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
@@ -39,6 +39,7 @@ export default function NovaTransacao() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [divida, setDivida] = useState<{ total: number; count: number } | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
@@ -73,6 +74,13 @@ export default function NovaTransacao() {
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
     fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
   }, []);
+
+  useEffect(() => {
+    if (!form.clienteId || form.tipo !== "venda") { setDivida(null); return; }
+    fetch(`/api/clientes/${form.clienteId}/divida`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setDivida(d?.count > 0 ? d : null));
+  }, [form.clienteId, form.tipo]);
 
   async function addCategoria() {
     const nome = novaCat.trim().toLowerCase();
@@ -282,6 +290,16 @@ export default function NovaTransacao() {
                 <option value="">Sem cliente</option>
                 {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
+            )}
+            {divida && (
+              <div className="mt-2 flex items-start gap-2 px-3 py-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <AlertTriangle size={15} className="text-orange-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-orange-800 dark:text-orange-300">
+                  Este cliente possui <span className="font-semibold">{divida.count} venda{divida.count !== 1 ? "s" : ""} pendente{divida.count !== 1 ? "s" : ""}</span> em aberto no valor de{" "}
+                  <span className="font-semibold">{divida.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>.{" "}
+                  <Link href="/relatorios" className="underline hover:text-orange-600">Ver inadimplência</Link>
+                </p>
+              </div>
             )}
           </div>
         )}
