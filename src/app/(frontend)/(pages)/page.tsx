@@ -87,6 +87,7 @@ function Variacao({ variacao, invertido = false }: { variacao: number; invertido
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/dashboard").then((r) => r.json()).then(setData);
@@ -102,6 +103,7 @@ export default function Dashboard() {
           bg: "bg-green-50 dark:bg-green-900/20",
           variacao: data.comparativo.vendas.variacao,
           invertido: false,
+          tipoKey: "venda",
         },
         {
           label: "Despesas do mês",
@@ -111,6 +113,7 @@ export default function Dashboard() {
           bg: "bg-red-50 dark:bg-red-900/20",
           variacao: data.comparativo.despesas.variacao,
           invertido: true,
+          tipoKey: "despesa",
         },
         {
           label: "Entradas do mês",
@@ -120,6 +123,7 @@ export default function Dashboard() {
           bg: "bg-blue-50 dark:bg-blue-900/20",
           variacao: data.comparativo.entradas.variacao,
           invertido: false,
+          tipoKey: "entrada",
         },
         {
           label: "Saldo total",
@@ -129,9 +133,14 @@ export default function Dashboard() {
           bg: data.saldo >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20",
           variacao: 0,
           invertido: false,
+          tipoKey: null,
         },
       ]
     : [];
+
+  const recentesFiltradas = tipoFiltro
+    ? (data?.recentes ?? []).filter((t) => t.tipo === tipoFiltro)
+    : (data?.recentes ?? []);
 
   return (
     <div>
@@ -139,18 +148,25 @@ export default function Dashboard() {
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        {cards.map(({ label, value, icon: Icon, color, bg, variacao, invertido }) => (
-          <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
-                <Icon size={20} className={color} />
+        {cards.map(({ label, value, icon: Icon, color, bg, variacao, invertido, tipoKey }) => {
+          const ativo = tipoFiltro === tipoKey && tipoKey !== null;
+          return (
+            <div
+              key={label}
+              onClick={() => setTipoFiltro(tipoKey && tipoFiltro !== tipoKey ? tipoKey : null)}
+              className={`bg-white dark:bg-gray-900 rounded-xl border p-5 transition-all ${tipoKey ? "cursor-pointer hover:shadow-md" : ""} ${ativo ? "border-green-500 dark:border-green-500 ring-2 ring-green-500/20" : "border-gray-200 dark:border-gray-800"}`}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
+                  <Icon size={20} className={color} />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</p>
+              <p className={`text-2xl font-bold ${color} mb-1`}>{formatCurrency(value)}</p>
+              <Variacao variacao={variacao} invertido={invertido} />
             </div>
-            <p className={`text-2xl font-bold ${color} mb-1`}>{formatCurrency(value)}</p>
-            <Variacao variacao={variacao} invertido={invertido} />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Gráfico */}
@@ -214,12 +230,19 @@ export default function Dashboard() {
 
       {/* Recentes */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-4">Últimas Transações</h2>
-        {!data || data.recentes.length === 0 ? (
-          <p className="text-sm text-gray-400">Nenhuma transação ainda.</p>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Últimas Transações</h2>
+          {tipoFiltro && (
+            <button onClick={() => setTipoFiltro(null)} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">
+              {tipoFiltro} × limpar
+            </button>
+          )}
+        </div>
+        {!data || recentesFiltradas.length === 0 ? (
+          <p className="text-sm text-gray-400">{tipoFiltro ? `Nenhuma transação do tipo "${tipoFiltro}" este mês.` : "Nenhuma transação ainda."}</p>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {data.recentes.map((t) => (
+            {recentesFiltradas.map((t) => (
               <div key={t.id} className="flex items-center justify-between py-3">
                 <div>
                   <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.descricao}</p>

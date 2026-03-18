@@ -1,13 +1,112 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar } from "lucide-react";
 
 interface Fornecedor {
   id: number;
   nome: string;
   telefone: string | null;
   email: string | null;
+}
+
+interface Transaction {
+  id: number;
+  tipo: string;
+  descricao: string;
+  produto: string | null;
+  categoria: string | null;
+  valorTotal: number;
+  data: string;
+}
+
+const tipoCor: Record<string, string> = {
+  venda: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+  despesa: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  entrada: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  saida: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400",
+};
+const tipoLabel: Record<string, string> = { venda: "Venda", despesa: "Despesa", entrada: "Entrada", saida: "Saída" };
+
+function formatCurrency(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
+function formatDate(d: string) { return new Date(d).toLocaleDateString("pt-BR"); }
+
+function HistoricoModal({ fornecedor, onClose }: { fornecedor: Fornecedor; onClose: () => void }) {
+  const [transacoes, setTransacoes] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/transactions?fornecedorId=${fornecedor.id}&limit=200`)
+      .then((r) => r.ok ? r.json() : { transactions: [] })
+      .then((d) => { setTransacoes(d.transactions ?? []); setLoading(false); });
+  }, [fornecedor.id]);
+
+  const totalGasto = transacoes.reduce((s, t) => s + t.valorTotal, 0);
+  const ticketMedio = transacoes.length > 0 ? totalGasto / transacoes.length : 0;
+  const ultimaCompra = transacoes.length > 0 ? transacoes[0].data : null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Histórico — {fornecedor.nome}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">×</button>
+        </div>
+
+        {!loading && (
+          <div className="grid grid-cols-3 gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="text-center">
+              <div className="flex justify-center mb-1"><TrendingDown size={16} className="text-red-500" /></div>
+              <p className="text-xs text-gray-400">Total gasto</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(totalGasto)}</p>
+            </div>
+            <div className="text-center">
+              <div className="flex justify-center mb-1"><ShoppingBag size={16} className="text-blue-500" /></div>
+              <p className="text-xs text-gray-400">Pedidos</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{transacoes.length}</p>
+            </div>
+            <div className="text-center">
+              <div className="flex justify-center mb-1"><Calendar size={16} className="text-purple-500" /></div>
+              <p className="text-xs text-gray-400">Ticket médio</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(ticketMedio)}</p>
+            </div>
+          </div>
+        )}
+
+        {ultimaCompra && (
+          <p className="text-xs text-gray-400 px-5 pt-3">
+            Última compra: <span className="text-gray-600 dark:text-gray-300 font-medium">{formatDate(ultimaCompra)}</span>
+          </p>
+        )}
+
+        <div className="overflow-y-auto flex-1 mt-2">
+          {loading ? (
+            <p className="text-sm text-gray-400 p-5">Carregando...</p>
+          ) : transacoes.length === 0 ? (
+            <p className="text-sm text-gray-400 p-5">Nenhuma transação vinculada a este fornecedor.</p>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {transacoes.map((t) => (
+                <div key={t.id} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{t.produto ?? t.descricao}</p>
+                    <p className="text-xs text-gray-400">
+                      {formatDate(t.data)}
+                      {t.categoria && ` • ${t.categoria}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-100 whitespace-nowrap">{formatCurrency(t.valorTotal)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function FornecedorModal({ fornecedor, onSave, onCancel }: {
@@ -89,6 +188,7 @@ export default function Fornecedores() {
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
   const [selected, setSelected] = useState<Fornecedor | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [historicoFornecedor, setHistoricoFornecedor] = useState<Fornecedor | null>(null);
 
   async function load() {
     const res = await fetch("/api/fornecedores");
@@ -115,6 +215,7 @@ export default function Fornecedores() {
         />
       )}
       {deleteId && <ConfirmModal onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />}
+      {historicoFornecedor && <HistoricoModal fornecedor={historicoFornecedor} onClose={() => setHistoricoFornecedor(null)} />}
 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fornecedores</h1>
@@ -143,6 +244,10 @@ export default function Fornecedores() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <button onClick={() => setHistoricoFornecedor(f)}
+                  className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Histórico">
+                  <History size={14} />
+                </button>
                 <button onClick={() => { setSelected(f); setModal("edit"); }}
                   className="p-1.5 text-gray-400 hover:text-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                   <Pencil size={14} />

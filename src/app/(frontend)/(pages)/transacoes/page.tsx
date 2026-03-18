@@ -38,7 +38,7 @@ interface Totais { vendas: number; despesas: number; entradas: number; saldo: nu
 
 // --- Constants ---
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
-const CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
+const DEFAULT_CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
 
 const tipoCor: Record<string, string> = {
@@ -121,7 +121,7 @@ type EditForm = {
   observacoes: string; comprovanteUrl: string; fotoUrl: string; data: string;
 };
 
-function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction; onSave: () => void; onCancel: () => void }) {
+function EditModal({ transaction, categorias, onSave, onCancel }: { transaction: Transaction; categorias: string[]; onSave: () => void; onCancel: () => void }) {
   const [form, setForm] = useState<EditForm>({
     tipo: transaction.tipo,
     descricao: transaction.descricao,
@@ -224,7 +224,7 @@ function EditModal({ transaction, onSave, onCancel }: { transaction: Transaction
               <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="">Sem categoria</option>
-                {CATEGORIAS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
             </div>
           </div>
@@ -375,6 +375,7 @@ export default function Transacoes() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [clientes, setClientes] = useState<Pessoa[]>([]);
   const [fornecedores, setFornecedores] = useState<Pessoa[]>([]);
+  const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<{ message: string; onUndo: () => void } | null>(null);
@@ -384,6 +385,7 @@ export default function Transacoes() {
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
+    fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
   }, []);
 
   const buildParams = useCallback((overrides: Record<string, string> = {}) => {
@@ -552,9 +554,9 @@ export default function Transacoes() {
   function renderRow(t: Transaction) {
     const isSelected = selected.has(t.id);
     return (
-      <tr key={t.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : ""}`}>
+      <tr key={t.id} onClick={() => setEditTransaction(t)} className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : ""}`}>
         <td className="px-4 py-3 w-8">
-          <button onClick={() => toggleSelect(t.id)} className="text-gray-400 hover:text-green-500 transition-colors">
+          <button onClick={(e) => { e.stopPropagation(); toggleSelect(t.id); }} className="text-gray-400 hover:text-green-500 transition-colors">
             {isSelected ? <CheckSquare size={16} className="text-green-500" /> : <Square size={16} />}
           </button>
         </td>
@@ -587,7 +589,7 @@ export default function Transacoes() {
         </td>
         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
         <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
-        <td className="px-4 py-3">
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <StatusBadge status={t.statusPagamento} onClick={t.statusPagamento ? () => handleTogglePago(t) : undefined} />
         </td>
         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -597,7 +599,7 @@ export default function Transacoes() {
         </td>
         <td className="px-4 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
         <td className="px-4 py-3">
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Pencil size={14} /></button>
             <button onClick={() => handleDuplicate(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar"><Copy size={14} /></button>
             <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
@@ -609,7 +611,7 @@ export default function Transacoes() {
 
   return (
     <div>
-      {editTransaction && <EditModal transaction={editTransaction} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
+      {editTransaction && <EditModal transaction={editTransaction} categorias={categorias} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
       {toast && <ToastUndo message={toast.message} onUndo={toast.onUndo} onDismiss={dismissToast} />}
 
       {/* Bulk action bar */}
@@ -690,7 +692,7 @@ export default function Transacoes() {
           <select value={categoria} onChange={(e) => { setCategoria(e.target.value); setPage(1); }}
             className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
             <option value="">Todas as categorias</option>
-            {CATEGORIAS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+            {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
           </select>
           <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">

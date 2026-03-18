@@ -7,7 +7,7 @@ import { CheckCircle, ImagePlus, X } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
-const CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
+const DEFAULT_CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
 const DRAFT_KEY = "nova_transacao_rascunho";
 
@@ -44,6 +44,9 @@ export default function NovaTransacao() {
   const [hasDraft, setHasDraft] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string>("");
+  const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
+  const [novaCat, setNovaCat] = useState("");
+  const [showAddCat, setShowAddCat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -68,7 +71,32 @@ export default function NovaTransacao() {
   useEffect(() => {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
+    fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
   }, []);
+
+  async function addCategoria() {
+    const nome = novaCat.trim().toLowerCase();
+    if (!nome) return;
+    const res = await fetch("/api/categorias", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome }),
+    });
+    if (res.ok) { setCategorias(await res.json()); setNovaCat(""); }
+  }
+
+  async function removeCategoria(nome: string) {
+    const res = await fetch("/api/categorias", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setCategorias(updated);
+      if (form.categoria === nome) set("categoria", "");
+    }
+  }
 
   // Auto-save draft on form changes (debounced via useEffect)
   useEffect(() => {
@@ -290,14 +318,44 @@ export default function NovaTransacao() {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
+              <button type="button" onClick={() => setShowAddCat((v) => !v)} className="text-xs text-green-600 dark:text-green-400 hover:underline">
+                {showAddCat ? "Fechar" : "+ Gerenciar"}
+              </button>
+            </div>
             <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
               <option value="">Sem categoria</option>
-              {CATEGORIAS.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+              {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
             </select>
           </div>
         </div>
+        {showAddCat && (
+          <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-2">
+            <div className="flex gap-2">
+              <input
+                value={novaCat}
+                onChange={(e) => setNovaCat(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategoria())}
+                placeholder="Nova categoria..."
+                className="flex-1 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <button type="button" onClick={addCategoria}
+                className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                Adicionar
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {categorias.map((c) => (
+                <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full">
+                  {c}
+                  <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 transition-colors leading-none">×</button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )
 
         {/* Foto do produto */}
         <div>
