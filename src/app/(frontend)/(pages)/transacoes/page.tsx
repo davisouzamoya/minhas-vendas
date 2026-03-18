@@ -849,7 +849,7 @@ export default function Transacoes() {
                 <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
                   <button onClick={() => setEditTransaction(t)} className="p-1 text-gray-400 hover:text-green-500 transition-colors"><Pencil size={14} /></button>
-                  <button onClick={() => handleDuplicate(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
+                  <button onClick={() => setDuplicateTarget(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
                   <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                 </div>
               </div>
