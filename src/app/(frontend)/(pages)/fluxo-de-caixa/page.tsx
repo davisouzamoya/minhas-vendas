@@ -56,7 +56,7 @@ export default function FluxoDeCaixa() {
           ))}
         </div>
         {/* Datas */}
-        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}

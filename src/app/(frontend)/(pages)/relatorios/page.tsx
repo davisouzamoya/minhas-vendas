@@ -94,7 +94,7 @@ export default function Relatorios() {
 
       {/* Filtro de período */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 print:hidden">
-        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
@@ -106,12 +106,10 @@ export default function Relatorios() {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           {(dataInicio || dataFim) && (
-            <div className="col-span-2 sm:col-span-1">
-              <button onClick={() => { setDataInicio(""); setDataFim(""); }}
-                className="px-3 py-2 text-xs text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap">
-                Limpar filtro
-              </button>
-            </div>
+            <button onClick={() => { setDataInicio(""); setDataFim(""); }}
+              className="px-3 py-2 text-xs text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap">
+              Limpar filtro
+            </button>
           )}
         </div>
       </div>

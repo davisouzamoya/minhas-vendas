@@ -699,7 +699,7 @@ export default function Transacoes() {
             <option value="pendente">Pendente</option>
           </select>
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
             <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPage(1); }}
@@ -731,11 +731,9 @@ export default function Transacoes() {
             </div>
           )}
           {hasFilters && (
-            <div className="col-span-2 sm:col-span-1 flex sm:block">
-              <button onClick={resetFilters} className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap sm:mt-5">
-                Limpar filtros
-              </button>
-            </div>
+            <button onClick={resetFilters} className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap sm:mt-5">
+              Limpar filtros
+            </button>
           )}
         </div>
       </div>
