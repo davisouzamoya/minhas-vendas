@@ -22,7 +22,9 @@
       "Bash(grep -r \"from.*supabase/server\\\\|from.*.*server\\\\|from.*''''.*server''''\" /Users/davisouza/workspace/minhasVendas/src --include=*.ts --include=*.tsx)",
       "Bash(git add:*)",
       "Bash(mkdir -p /Users/davisouza/workspace/minhasVendas/src/app/\\\\\\(backend\\\\\\)/api/clientes/[id])",
-      "Bash(mkdir -p /Users/davisouza/workspace/minhasVendas/src/app/\\\\\\(backend\\\\\\)/api/fornecedores/[id])"
+      "Bash(mkdir -p /Users/davisouza/workspace/minhasVendas/src/app/\\\\\\(backend\\\\\\)/api/fornecedores/[id])",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill:*)"
     ]
   }
 }

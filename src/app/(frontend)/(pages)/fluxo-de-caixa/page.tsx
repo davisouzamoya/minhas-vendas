@@ -45,23 +45,28 @@ export default function FluxoDeCaixa() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Fluxo de Caixa</h1>
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Período */}
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 space-y-3">
+        {/* Toggle período */}
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden w-full sm:w-auto self-start">
           {(["mes", "semana"] as const).map((p) => (
             <button key={p} onClick={() => setPeriodo(p)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${periodo === p ? "bg-green-600 text-white" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
+              className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium transition-colors ${periodo === p ? "bg-green-600 text-white" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
               {p === "mes" ? "Por mês" : "Por semana"}
             </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-2">
-          <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <span className="text-gray-400 text-sm">até</span>
-          <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+        {/* Datas */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:items-end">
+          <div>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
+            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
+            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
         </div>
       </div>
 
@@ -92,13 +97,13 @@ export default function FluxoDeCaixa() {
       ) : (
         <>
           {/* Gráfico */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6 overflow-hidden">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Entradas vs Saídas</h2>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={rows} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={rows} margin={{ left: -10, right: 8, top: 4, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => v >= 1000 ? `R$${(v / 1000).toFixed(0)}k` : `R$${v}`} width={52} />
                 <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                 <ReferenceLine y={0} stroke="#9ca3af" />
                 <Bar dataKey="entradas" name="Entradas" fill="#16a34a" radius={[4, 4, 0, 0]} />
