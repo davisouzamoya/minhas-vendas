@@ -355,7 +355,7 @@ export default function NovaTransacao() {
               ))}
             </div>
           </div>
-        )
+        )}
 
         {/* Foto do produto */}
         <div>
