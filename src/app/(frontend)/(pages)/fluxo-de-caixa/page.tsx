@@ -17,6 +17,11 @@ function formatCurrency(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function formatShort(v: number) {
+  if (v >= 1000) return `R$${(v / 1000).toFixed(0)}k`;
+  return `R$${v.toFixed(0)}`;
+}
+
 const hoje = new Date();
 const defaultInicio = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1).toISOString().split("T")[0];
 const defaultFim = hoje.toISOString().split("T")[0];
@@ -41,7 +46,7 @@ export default function FluxoDeCaixa() {
   const saldoFinal = rows.length > 0 ? rows[rows.length - 1].saldoAcumulado : 0;
 
   return (
-    <div>
+    <div className="w-full min-w-0">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Fluxo de Caixa</h1>
 
       {/* Filtros */}
@@ -69,18 +74,18 @@ export default function FluxoDeCaixa() {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total entradas</p>
-          <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalEntradas)}</p>
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(totalEntradas)}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total saídas</p>
-          <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(totalSaidas)}</p>
+          <p className="text-lg font-bold text-red-600 dark:text-red-400">{formatCurrency(totalSaidas)}</p>
         </div>
         <div className={`rounded-xl border p-4 ${saldoFinal >= 0 ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"}`}>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Saldo acumulado</p>
-          <p className={`text-xl font-bold ${saldoFinal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>{formatCurrency(saldoFinal)}</p>
+          <p className={`text-lg font-bold ${saldoFinal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>{formatCurrency(saldoFinal)}</p>
         </div>
       </div>
 
@@ -95,44 +100,46 @@ export default function FluxoDeCaixa() {
       ) : (
         <>
           {/* Gráfico */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 mb-6">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Entradas vs Saídas</h2>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={rows} margin={{ left: 0, right: 8, top: 4, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                <ReferenceLine y={0} stroke="#9ca3af" />
-                <Bar dataKey="entradas" name="Entradas" fill="#16a34a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="saidas" name="Saídas" fill="#dc2626" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 overflow-hidden">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Entradas vs Saídas</h2>
+            <div className="w-full" style={{ height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={rows} margin={{ left: -8, right: 4, top: 4, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={formatShort} width={48} />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                  <ReferenceLine y={0} stroke="#9ca3af" />
+                  <Bar dataKey="entradas" name="Entradas" fill="#16a34a" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="saidas" name="Saídas" fill="#dc2626" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          {/* Tabela */}
+          {/* Tabela com scroll horizontal no mobile */}
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-sm" style={{ minWidth: 480 }}>
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Período</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide">Entradas</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">Saídas</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Saldo</th>
-                    <th className="text-right px-5 py-3 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Saldo acumulado</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Período</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide whitespace-nowrap">Entradas</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide whitespace-nowrap">Saídas</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">Saldo</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide whitespace-nowrap">Acumulado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {rows.map((r, i) => (
                     <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="px-5 py-3 font-medium text-gray-800 dark:text-gray-100 capitalize">{r.label}</td>
-                      <td className="px-5 py-3 text-right text-green-600 dark:text-green-400 font-medium">{formatCurrency(r.entradas)}</td>
-                      <td className="px-5 py-3 text-right text-red-600 dark:text-red-400 font-medium">{formatCurrency(r.saidas)}</td>
-                      <td className={`px-5 py-3 text-right font-semibold ${r.saldo >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100 capitalize whitespace-nowrap">{r.label}</td>
+                      <td className="px-4 py-3 text-right text-green-600 dark:text-green-400 font-medium whitespace-nowrap">{formatCurrency(r.entradas)}</td>
+                      <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 font-medium whitespace-nowrap">{formatCurrency(r.saidas)}</td>
+                      <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${r.saldo >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
                         {r.saldo >= 0 ? "+" : ""}{formatCurrency(r.saldo)}
                       </td>
-                      <td className={`px-5 py-3 text-right font-bold ${r.saldoAcumulado >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}`}>
+                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${r.saldoAcumulado >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}`}>
                         {formatCurrency(r.saldoAcumulado)}
                       </td>
                     </tr>
@@ -140,13 +147,13 @@ export default function FluxoDeCaixa() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                    <td className="px-5 py-3 font-bold text-gray-700 dark:text-gray-300">Total</td>
-                    <td className="px-5 py-3 text-right font-bold text-green-700 dark:text-green-400">{formatCurrency(totalEntradas)}</td>
-                    <td className="px-5 py-3 text-right font-bold text-red-700 dark:text-red-400">{formatCurrency(totalSaidas)}</td>
-                    <td className={`px-5 py-3 text-right font-bold ${saldoFinal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+                    <td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">Total</td>
+                    <td className="px-4 py-3 text-right font-bold text-green-700 dark:text-green-400 whitespace-nowrap">{formatCurrency(totalEntradas)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-red-700 dark:text-red-400 whitespace-nowrap">{formatCurrency(totalSaidas)}</td>
+                    <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${saldoFinal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
                       {saldoFinal >= 0 ? "+" : ""}{formatCurrency(totalEntradas - totalSaidas)}
                     </td>
-                    <td className={`px-5 py-3 text-right font-bold ${saldoFinal >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}`}>
+                    <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${saldoFinal >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}`}>
                       {formatCurrency(saldoFinal)}
                     </td>
                   </tr>
