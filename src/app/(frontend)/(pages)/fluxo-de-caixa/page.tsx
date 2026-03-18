@@ -51,10 +51,10 @@ export default function FluxoDeCaixa() {
 
       {/* Filtros */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 space-y-3">
-        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="grid grid-cols-2 gap-2">
           {(["mes", "semana"] as const).map((p) => (
             <button key={p} onClick={() => setPeriodo(p)}
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${periodo === p ? "bg-green-600 text-white" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
+              className={`py-2 rounded-lg text-sm font-medium border transition-colors ${periodo === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400"}`}>
               {p === "mes" ? "Por mês" : "Por semana"}
             </button>
           ))}
