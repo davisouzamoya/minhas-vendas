@@ -699,19 +699,19 @@ export default function Transacoes() {
             <option value="pendente">Pendente</option>
           </select>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
             <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
-          <div className="flex-1">
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
             <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           {clientes.length > 0 && (
-            <div className="flex-1">
+            <div className="w-full sm:flex-1">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cliente</label>
               <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setPage(1); }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -721,7 +721,7 @@ export default function Transacoes() {
             </div>
           )}
           {fornecedores.length > 0 && (
-            <div className="flex-1">
+            <div className="w-full sm:flex-1">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fornecedor</label>
               <select value={fornecedorId} onChange={(e) => { setFornecedorId(e.target.value); setPage(1); }}
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -731,7 +731,7 @@ export default function Transacoes() {
             </div>
           )}
           {hasFilters && (
-            <button onClick={resetFilters} className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors whitespace-nowrap">
+            <button onClick={resetFilters} className="w-full sm:w-auto px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
               Limpar filtros
             </button>
           )}

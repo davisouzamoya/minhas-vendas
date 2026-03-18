@@ -45,23 +45,26 @@ export default function FluxoDeCaixa() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Fluxo de Caixa</h1>
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Período */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 space-y-3">
         <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {(["mes", "semana"] as const).map((p) => (
             <button key={p} onClick={() => setPeriodo(p)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${periodo === p ? "bg-green-600 text-white" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${periodo === p ? "bg-green-600 text-white" : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
               {p === "mes" ? "Por mês" : "Por semana"}
             </button>
           ))}
         </div>
-
-        <div className="flex items-center gap-2">
-          <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <span className="text-gray-400 text-sm">até</span>
-          <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="w-full sm:flex-1">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
+            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
+          <div className="w-full sm:flex-1">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
+            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+          </div>
         </div>
       </div>
 
