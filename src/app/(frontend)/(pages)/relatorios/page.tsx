@@ -58,7 +58,6 @@ export default function Relatorios() {
     window.dispatchEvent(new Event("vendas-pendentes-updated"));
   }
 
-  
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
@@ -94,20 +93,20 @@ export default function Relatorios() {
 
       {/* Filtro de período */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-6 print:hidden">
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
-          <div>
+          <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
             <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           {(dataInicio || dataFim) && (
             <button onClick={() => { setDataInicio(""); setDataFim(""); }}
-              className="px-3 py-2 text-xs text-gray-500 hover:text-red-500 transition-colors whitespace-nowrap">
+              className="w-full sm:w-auto px-3 py-2 text-xs text-gray-500 hover:text-red-500 transition-colors">
               Limpar filtro
             </button>
           )}
