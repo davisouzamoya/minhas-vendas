@@ -147,7 +147,7 @@ export default function FluxoDeCaixa() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                    <td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300">Total</td>
+                    <td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">Total</td>
                     <td className="px-4 py-3 text-right font-bold text-green-700 dark:text-green-400 whitespace-nowrap">{formatCurrency(totalEntradas)}</td>
                     <td className="px-4 py-3 text-right font-bold text-red-700 dark:text-red-400 whitespace-nowrap">{formatCurrency(totalSaidas)}</td>
                     <td className={`px-4 py-3 text-right font-bold whitespace-nowrap ${saldoFinal >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
