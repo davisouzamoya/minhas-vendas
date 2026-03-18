@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   PlusCircle, Search, Trash2, ReceiptText, Pencil, Download, Copy,
   CheckCircle2, Paperclip, Repeat, Square, CheckSquare, ArrowUpDown,
-  ArrowUp, ArrowDown, Layers,
+  ArrowUp, ArrowDown, Layers, AlignJustify,
 } from "lucide-react";
 
 // --- Interfaces ---
@@ -300,6 +300,34 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
   );
 }
 
+// --- Duplicate Modal ---
+function DuplicateModal({ transaction, onConfirm, onCancel }: {
+  transaction: Transaction;
+  onConfirm: (data: string) => void;
+  onCancel: () => void;
+}) {
+  const [data, setData] = useState(new Date().toISOString().split("T")[0]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 w-full max-w-xs shadow-xl p-5">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Duplicar transação</h2>
+        <p className="text-xs text-gray-400 mb-4 truncate">{transaction.descricao}</p>
+        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data</label>
+        <input type="date" value={data} onChange={(e) => setData(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500 mb-4" />
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel} className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={() => onConfirm(data)} className="px-3 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors">
+            Duplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Pagination ---
 function Pagination({ page, totalPages, total, onChange }: { page: number; totalPages: number; total: number; onChange: (p: number) => void }) {
   const pages: (number | "...")[] = [];
@@ -377,6 +405,8 @@ export default function Transacoes() {
   const [fornecedores, setFornecedores] = useState<Pessoa[]>([]);
   const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState<Transaction | null>(null);
+  const [compacto, setCompacto] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<{ message: string; onUndo: () => void } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -495,7 +525,8 @@ export default function Transacoes() {
     window.dispatchEvent(new Event("vendas-pendentes-updated"));
   }
 
-  async function handleDuplicate(t: Transaction) {
+  async function confirmDuplicate(t: Transaction, data: string) {
+    setDuplicateTarget(null);
     await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -504,7 +535,7 @@ export default function Transacoes() {
         categoria: t.categoria, quantidade: t.quantidade,
         valor_unitario: t.valorUnitario, valor_total: t.valorTotal,
         forma_pagamento: t.formaPagamento, observacoes: t.observacoes,
-        data: new Date().toISOString().split("T")[0],
+        data,
       }),
     });
     load();
@@ -553,14 +584,15 @@ export default function Transacoes() {
 
   function renderRow(t: Transaction) {
     const isSelected = selected.has(t.id);
+    const py = compacto ? "py-1" : "py-3";
     return (
       <tr key={t.id} onClick={() => setEditTransaction(t)} className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : ""}`}>
-        <td className="px-4 py-3 w-8">
+        <td className={`px-4 ${py} w-8`}>
           <button onClick={(e) => { e.stopPropagation(); toggleSelect(t.id); }} className="text-gray-400 hover:text-green-500 transition-colors">
             {isSelected ? <CheckSquare size={16} className="text-green-500" /> : <Square size={16} />}
           </button>
         </td>
-        <td className="px-4 py-3 max-w-xs">
+        <td className={`px-4 ${py} max-w-xs`}>
           <p className="font-medium text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
             {t.descricao}
             {t.recorrente && <span title="Recorrente"><Repeat size={12} className="text-blue-400 shrink-0" /></span>}
@@ -570,38 +602,42 @@ export default function Transacoes() {
               </a>
             )}
           </p>
-          <div className="flex items-start gap-2">
-            {t.fotoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5" />
-            )}
-            <div>
-              {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-              {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
-            </div>
-          </div>
-          {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
-            <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
+          {!compacto && (
+            <>
+              <div className="flex items-start gap-2">
+                {t.fotoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
+                  {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+                </div>
+              </div>
+              {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
+                <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
+              )}
+            </>
           )}
         </td>
-        <td className="px-4 py-3">
+        <td className={`px-4 ${py}`}>
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
         </td>
-        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.categoria ?? "—"}</td>
-        <td className="px-4 py-3 text-gray-600 dark:text-gray-400 capitalize">{t.formaPagamento ?? "—"}</td>
-        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400 capitalize`}>{t.categoria ?? "—"}</td>
+        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400 capitalize`}>{t.formaPagamento ?? "—"}</td>
+        <td className={`px-4 ${py}`} onClick={(e) => e.stopPropagation()}>
           <StatusBadge status={t.statusPagamento} onClick={t.statusPagamento ? () => handleTogglePago(t) : undefined} />
         </td>
-        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400`}>
           <p>{formatDate(t.data)}</p>
-          {t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
-          {t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
+          {!compacto && t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
+          {!compacto && t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
         </td>
-        <td className="px-4 py-3 text-right font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</td>
-        <td className="px-4 py-3">
+        <td className={`px-4 ${py} text-right font-semibold text-gray-800 dark:text-gray-100`}>{formatCurrency(t.valorTotal)}</td>
+        <td className={`px-4 ${py}`}>
           <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Pencil size={14} /></button>
-            <button onClick={() => handleDuplicate(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar"><Copy size={14} /></button>
+            <button onClick={() => setDuplicateTarget(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar"><Copy size={14} /></button>
             <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
           </div>
         </td>
@@ -612,6 +648,7 @@ export default function Transacoes() {
   return (
     <div>
       {editTransaction && <EditModal transaction={editTransaction} categorias={categorias} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
+      {duplicateTarget && <DuplicateModal transaction={duplicateTarget} onConfirm={(data) => confirmDuplicate(duplicateTarget, data)} onCancel={() => setDuplicateTarget(null)} />}
       {toast && <ToastUndo message={toast.message} onUndo={toast.onUndo} onDismiss={dismissToast} />}
 
       {/* Bulk action bar */}
@@ -632,6 +669,13 @@ export default function Transacoes() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transações</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCompacto((v) => !v)}
+            title={compacto ? "Modo normal" : "Modo compacto"}
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${compacto ? "border-green-500 text-green-600 dark:text-green-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+          >
+            <AlignJustify size={15} />
+          </button>
           <button
             onClick={() => setAgrupar((v) => v === "" ? "dia" : v === "dia" ? "mes" : "")}
             title={agrupar === "" ? "Agrupar por dia" : agrupar === "dia" ? "Agrupar por mês" : "Sem agrupamento"}
