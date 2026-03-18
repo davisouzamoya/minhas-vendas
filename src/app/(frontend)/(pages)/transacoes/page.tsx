@@ -407,6 +407,7 @@ export default function Transacoes() {
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<Transaction | null>(null);
   const [compacto, setCompacto] = useState(false);
+  const [periodoRapido, setPeriodoRapido] = useState("");
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<{ message: string; onUndo: () => void } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -564,7 +565,25 @@ export default function Transacoes() {
 
   function resetFilters() {
     setTipo(""); setCategoria(""); setBusca(""); setDataInicio(""); setDataFim("");
-    setClienteId(""); setFornecedorId(""); setStatusFilter(""); setPage(1);
+    setClienteId(""); setFornecedorId(""); setStatusFilter(""); setPeriodoRapido(""); setPage(1);
+  }
+
+  function aplicarPeriodo(p: string) {
+    const hoje = new Date();
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    const fim = fmt(hoje);
+    if (p === "hoje") {
+      setDataInicio(fim); setDataFim(fim);
+    } else if (p === "semana") {
+      const d = new Date(hoje);
+      d.setDate(hoje.getDate() - (hoje.getDay() === 0 ? 6 : hoje.getDay() - 1));
+      setDataInicio(fmt(d)); setDataFim(fim);
+    } else if (p === "mes") {
+      setDataInicio(fmt(new Date(hoje.getFullYear(), hoje.getMonth(), 1))); setDataFim(fim);
+    } else if (p === "ano") {
+      setDataInicio(fmt(new Date(hoje.getFullYear(), 0, 1))); setDataFim(fim);
+    }
+    setPeriodoRapido(p); setPage(1);
   }
 
   // Group rows by day or month
@@ -719,6 +738,17 @@ export default function Transacoes() {
 
       {/* Filtros */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 space-y-3">
+        <div className="flex gap-2 flex-wrap">
+          {(["hoje", "semana", "mes", "ano"] as const).map((p) => {
+            const labels = { hoje: "Hoje", semana: "Esta semana", mes: "Este mês", ano: "Este ano" };
+            return (
+              <button key={p} onClick={() => { if (periodoRapido === p) { setPeriodoRapido(""); setDataInicio(""); setDataFim(""); setPage(1); } else { aplicarPeriodo(p); } }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${periodoRapido === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400 hover:text-green-600 dark:hover:text-green-400"}`}>
+                {labels[p]}
+              </button>
+            );
+          })}
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -748,12 +778,12 @@ export default function Transacoes() {
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
-            <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPage(1); }}
+            <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div className="w-full sm:flex-1">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
-            <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPage(1); }}
+            <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           {clientes.length > 0 && (
