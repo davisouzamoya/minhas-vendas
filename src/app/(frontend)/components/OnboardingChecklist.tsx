@@ -61,9 +61,8 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
       }, 300);
 
       const t = setTimeout(() => {
-        fetch("/api/perfil", { method: "PATCH" }).then((r) => {
-          if (r.ok) onComplete();
-        });
+        fetch("/api/perfil", { method: "PATCH" }).catch(() => {});
+        onComplete();
       }, 2500);
       return () => clearTimeout(t);
     }
