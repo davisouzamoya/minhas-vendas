@@ -46,14 +46,16 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
   const totalObrigatorios = steps.filter((s) => s.obrigatorio).length;
   const progresso = Math.round((concluidos / steps.length) * 100);
 
-  // Auto-completa apenas quando o usuário conclui um passo durante a sessão (não no mount)
+  // Ref estável para onComplete — evita que o effect re-execute por mudança de referência
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
   const prevConcluidos = useRef(-1); // -1 = primeira renderização
   useEffect(() => {
     const anterior = prevConcluidos.current;
     prevConcluidos.current = obrigatoriosConcluidos;
-    if (anterior === obrigatoriosConcluidos) return; // sem mudança após mount, ignora
+    if (anterior === obrigatoriosConcluidos) return;
     if (obrigatoriosConcluidos === totalObrigatorios) {
-      // Confetti em duas rajadas
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ["#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#ffffff"] });
       setTimeout(() => {
         confetti({ particleCount: 60, spread: 80, origin: { y: 0.5, x: 0.3 }, colors: ["#16a34a", "#facc15", "#f97316", "#ffffff"] });
@@ -61,12 +63,14 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
       }, 300);
 
       const t = setTimeout(() => {
-        fetch("/api/perfil", { method: "PATCH" }).catch(() => {});
-        onComplete();
+        fetch("/api/perfil", { method: "PATCH" })
+          .then(async (r) => { if (!r.ok) console.error("PATCH /api/perfil falhou:", r.status, await r.text()); })
+          .catch((e) => console.error("PATCH /api/perfil erro:", e));
+        onCompleteRef.current();
       }, 2500);
       return () => clearTimeout(t);
     }
-  }, [obrigatoriosConcluidos, totalObrigatorios, onComplete]);
+  }, [obrigatoriosConcluidos, totalObrigatorios]); // onComplete fora das deps — usamos a ref
 
   return (
     <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/10 border border-green-200 dark:border-green-800 rounded-xl p-5 mb-8">

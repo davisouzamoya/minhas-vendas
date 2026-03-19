@@ -17,10 +17,19 @@ export async function GET() {
 }
 
 export async function PATCH() {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  await prisma.$executeRaw`UPDATE "Perfil" SET "onboardingCompleto" = true WHERE "userId" = ${userId}`;
-  return NextResponse.json({ ok: true });
+  try {
+    const userId = await getUserId();
+    if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    const rows = await prisma.$executeRawUnsafe(
+      `UPDATE "Perfil" SET "onboardingCompleto" = true WHERE "userId" = $1`,
+      userId
+    );
+    console.log("[PATCH /api/perfil] rows updated:", rows, "userId:", userId);
+    return NextResponse.json({ ok: true, rows });
+  } catch (err) {
+    console.error("[PATCH /api/perfil] erro:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest) {

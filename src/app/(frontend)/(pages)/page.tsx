@@ -105,6 +105,7 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
   const [onboardingCompleto, setOnboardingCompleto] = useState(false);
+  const handleOnboardingComplete = useCallback(() => setOnboardingCompleto(true), []);
 
   const loadDashboard = useCallback(() => {
     fetch("/api/dashboard").then((r) => r.json()).then((d) => {
@@ -172,7 +173,7 @@ export default function Dashboard() {
       {data && !onboardingCompleto && !data.onboarding.completo && (
         <OnboardingChecklist
           passos={data.onboarding.passos}
-          onComplete={() => setOnboardingCompleto(true)}
+          onComplete={handleOnboardingComplete}
         />
       )}
 
