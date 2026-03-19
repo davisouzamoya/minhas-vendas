@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CheckCircle2, Circle, ChevronRight, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface Passos {
   perfil: boolean;
@@ -45,12 +45,19 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
   const totalObrigatorios = steps.filter((s) => s.obrigatorio).length;
   const progresso = Math.round((concluidos / steps.length) * 100);
 
-  // Quando todos os obrigatórios estão feitos, marca onboarding como completo
+  // Auto-completa apenas quando o usuário conclui um passo durante a sessão (não no mount)
+  const prevConcluidos = useRef(obrigatoriosConcluidos);
   useEffect(() => {
+    const anterior = prevConcluidos.current;
+    prevConcluidos.current = obrigatoriosConcluidos;
+    if (anterior === obrigatoriosConcluidos) return; // sem mudança, ignora
     if (obrigatoriosConcluidos === totalObrigatorios) {
-      fetch("/api/perfil", { method: "PATCH" }).then((r) => {
-        if (r.ok) onComplete();
-      });
+      const t = setTimeout(() => {
+        fetch("/api/perfil", { method: "PATCH" }).then((r) => {
+          if (r.ok) onComplete();
+        });
+      }, 1500); // mostra o estado "tudo pronto" por 1.5s antes de sumir
+      return () => clearTimeout(t);
     }
   }, [obrigatoriosConcluidos, totalObrigatorios, onComplete]);
 
