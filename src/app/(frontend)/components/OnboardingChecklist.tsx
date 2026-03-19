@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CheckCircle2, Circle, ChevronRight, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import confetti from "canvas-confetti";
 
 interface Passos {
   perfil: boolean;
@@ -52,11 +53,18 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
     prevConcluidos.current = obrigatoriosConcluidos;
     if (anterior === obrigatoriosConcluidos) return; // sem mudança, ignora
     if (obrigatoriosConcluidos === totalObrigatorios) {
+      // Confetti em duas rajadas
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ["#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#ffffff"] });
+      setTimeout(() => {
+        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5, x: 0.3 }, colors: ["#16a34a", "#facc15", "#f97316", "#ffffff"] });
+        confetti({ particleCount: 60, spread: 80, origin: { y: 0.5, x: 0.7 }, colors: ["#16a34a", "#facc15", "#f97316", "#ffffff"] });
+      }, 300);
+
       const t = setTimeout(() => {
         fetch("/api/perfil", { method: "PATCH" }).then((r) => {
           if (r.ok) onComplete();
         });
-      }, 1500); // mostra o estado "tudo pronto" por 1.5s antes de sumir
+      }, 2500);
       return () => clearTimeout(t);
     }
   }, [obrigatoriosConcluidos, totalObrigatorios, onComplete]);
