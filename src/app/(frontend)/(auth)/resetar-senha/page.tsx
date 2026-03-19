@@ -26,7 +26,7 @@ export default function ResetarSenha() {
     setLoading(false);
 
     if (error) { setErro("Não foi possível redefinir a senha. Tente novamente."); return; }
-    router.push("/");
+    router.push("/dashboard");
   }
 
   return (

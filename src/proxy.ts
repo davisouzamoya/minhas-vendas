@@ -29,13 +29,20 @@ export async function proxy(request: NextRequest) {
   );
   const isApiRoute = pathname.startsWith("/api/");
   const isAdminRoute = pathname.startsWith("/admin");
+  const isLandingPage = pathname === "/";
+
+  // Landing page: acessível para todos; redireciona usuário logado para o dashboard
+  if (isLandingPage) {
+    if (user) return NextResponse.redirect(new URL("/dashboard", request.url));
+    return supabaseResponse;
+  }
 
   if (!user && !isAuthPage && !isApiRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Verificação de role para rotas /admin/*
@@ -47,7 +54,7 @@ export async function proxy(request: NextRequest) {
       .single();
 
     if (perfil?.role !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 

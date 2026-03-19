@@ -25,7 +25,7 @@ import {
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const nav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/nova", label: "Nova Transação", icon: PlusCircle },
   { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
   { href: "/clientes", label: "Clientes", icon: Users },
