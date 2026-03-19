@@ -47,11 +47,11 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
   const progresso = Math.round((concluidos / steps.length) * 100);
 
   // Auto-completa apenas quando o usuário conclui um passo durante a sessão (não no mount)
-  const prevConcluidos = useRef(obrigatoriosConcluidos);
+  const prevConcluidos = useRef(-1); // -1 = primeira renderização
   useEffect(() => {
     const anterior = prevConcluidos.current;
     prevConcluidos.current = obrigatoriosConcluidos;
-    if (anterior === obrigatoriosConcluidos) return; // sem mudança, ignora
+    if (anterior === obrigatoriosConcluidos) return; // sem mudança após mount, ignora
     if (obrigatoriosConcluidos === totalObrigatorios) {
       // Confetti em duas rajadas
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 }, colors: ["#16a34a", "#22c55e", "#4ade80", "#bbf7d0", "#ffffff"] });
