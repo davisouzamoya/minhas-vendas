@@ -68,5 +68,6 @@ model Perfil {
   nomeNegocio  String
   logoUrl      String?
   categorias   Json?
+  role         String   @default("user")
   updatedAt    DateTime @updatedAt
 }
