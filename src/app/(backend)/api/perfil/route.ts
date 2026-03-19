@@ -16,6 +16,13 @@ export async function GET() {
   return NextResponse.json(perfil ?? { nomeNegocio: "", logoUrl: null });
 }
 
+export async function PATCH() {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  await prisma.$executeRaw`UPDATE "Perfil" SET "onboardingCompleto" = true WHERE "userId" = ${userId}`;
+  return NextResponse.json({ ok: true });
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const userId = await getUserId();

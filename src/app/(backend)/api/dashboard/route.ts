@@ -17,7 +17,7 @@ export async function GET() {
   const quarentaCincoDiasAtras = new Date();
   quarentaCincoDiasAtras.setDate(quarentaCincoDiasAtras.getDate() - 45);
 
-  const [transactions, totals, totaisMesAtual, totaisMesAnterior] = await Promise.all([
+  const [transactions, totals, totaisMesAtual, totaisMesAnterior, vendasCount, clientesCount] = await Promise.all([
     prisma.transaction.findMany({
       where: { userId },
       orderBy: { data: "desc" },
@@ -38,6 +38,8 @@ export async function GET() {
       where: { userId, data: { gte: mesAnteriorInicio, lte: mesAnteriorFim } },
       _sum: { valorTotal: true },
     }),
+    prisma.transaction.count({ where: { userId, tipo: "venda" } }),
+    prisma.cliente.count({ where: { userId } }),
   ]);
 
   function buildSummary(rows: { tipo: string; _sum: { valorTotal: number | null } }[]) {
@@ -146,5 +148,19 @@ export async function GET() {
     };
   }).sort((a, b) => b.diasSemComprar - a.diasSemComprar);
 
-  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes, clientesChurn });
+  type PerfilOnboarding = { nomeNegocio: string | null; onboardingCompleto: boolean };
+  const [perfilOnboarding] = await prisma.$queryRaw<PerfilOnboarding[]>`
+    SELECT "nomeNegocio", "onboardingCompleto" FROM "Perfil" WHERE "userId" = ${userId}
+  `;
+
+  const onboarding = {
+    completo: perfilOnboarding?.onboardingCompleto ?? false,
+    passos: {
+      perfil: !!perfilOnboarding?.nomeNegocio,
+      primeiraVenda: vendasCount > 0,
+      primeiroCliente: clientesCount > 0,
+    },
+  };
+
+  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes, clientesChurn, onboarding });
 }

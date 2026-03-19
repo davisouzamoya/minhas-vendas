@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import OnboardingChecklist from "@/app/(frontend)/components/OnboardingChecklist";
 import { TrendingUp, TrendingDown, Wallet, ArrowDownCircle, Cake, Phone, UserX, MessageCircle } from "lucide-react";
 import {
   AreaChart,
@@ -52,6 +53,11 @@ interface ClienteChurn {
   diasSemComprar: number;
 }
 
+interface Onboarding {
+  completo: boolean;
+  passos: { perfil: boolean; primeiraVenda: boolean; primeiroCliente: boolean };
+}
+
 interface DashboardData {
   summary: Summary;
   saldo: number;
@@ -60,6 +66,7 @@ interface DashboardData {
   comparativo: Comparativo;
   aniversariantes: Aniversariante[];
   clientesChurn: ClienteChurn[];
+  onboarding: Onboarding;
 }
 
 const tipoCor: Record<string, string> = {
@@ -97,10 +104,16 @@ function Variacao({ variacao, invertido = false }: { variacao: number; invertido
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
+  const [onboardingCompleto, setOnboardingCompleto] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then(setData);
+  const loadDashboard = useCallback(() => {
+    fetch("/api/dashboard").then((r) => r.json()).then((d) => {
+      setData(d);
+      setOnboardingCompleto(d?.onboarding?.completo ?? false);
+    });
   }, []);
+
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
   const cards = data
     ? [
@@ -154,6 +167,14 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dashboard</h1>
+
+      {/* Onboarding */}
+      {data && !onboardingCompleto && !data.onboarding.completo && (
+        <OnboardingChecklist
+          passos={data.onboarding.passos}
+          onComplete={() => setOnboardingCompleto(true)}
+        />
+      )}
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
