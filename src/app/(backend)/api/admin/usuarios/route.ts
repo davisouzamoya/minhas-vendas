@@ -6,9 +6,11 @@ async function requireAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const perfil = await prisma.perfil.findUnique({ where: { userId: user.id }, select: { role: true } });
+  const { data: perfil } = await supabase.from("Perfil").select("role").eq("userId", user.id).single();
   return perfil?.role === "admin" ? user : null;
 }
+
+type PerfilRow = { userId: string; nomeNegocio: string; role: string; updatedAt: Date };
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
@@ -16,11 +18,9 @@ export async function GET(request: NextRequest) {
 
   const q = new URL(request.url).searchParams.get("q") ?? "";
 
-  const perfis = await prisma.perfil.findMany({
-    where: q ? { nomeNegocio: { contains: q, mode: "insensitive" } } : undefined,
-    orderBy: { updatedAt: "desc" },
-    take: 50,
-  });
+  const perfis: PerfilRow[] = q
+    ? await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "updatedAt" FROM "Perfil" WHERE "nomeNegocio" ILIKE ${'%' + q + '%'} ORDER BY "updatedAt" DESC LIMIT 50`
+    : await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "updatedAt" FROM "Perfil" ORDER BY "updatedAt" DESC LIMIT 50`;
 
   const userIds = perfis.map((p) => p.userId);
 
@@ -63,6 +63,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
-  await prisma.perfil.update({ where: { userId }, data: { role } });
+  await prisma.$executeRaw`UPDATE "Perfil" SET "role" = ${role} WHERE "userId" = ${userId}`;
   return NextResponse.json({ ok: true });
 }

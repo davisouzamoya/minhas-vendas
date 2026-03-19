@@ -7,7 +7,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const perfil = await prisma.perfil.findUnique({ where: { userId: user.id }, select: { role: true } });
+  const { data: perfil } = await supabase.from("Perfil").select("role").eq("userId", user.id).single();
   if (perfil?.role !== "admin") return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
 
   const trinta = new Date();
