@@ -22,6 +22,9 @@ import {
   Building2,
   Settings,
   Plus,
+  Search,
+  Bell,
+  History,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
@@ -35,6 +38,12 @@ const nav = [
   { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity },
   { href: "/perfil", label: "Perfil", icon: Settings },
 ];
+
+function getInitials(name: string) {
+  const parts = name.trim().split(" ");
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 function SidebarContent({
   onClose,
@@ -184,6 +193,138 @@ function SidebarContent({
   );
 }
 
+function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
+  onMobileMenuOpen: () => void;
+  desktopOpen: boolean;
+  onDesktopOpen: () => void;
+}) {
+  const router = useRouter();
+  const [nomeNegocio, setNomeNegocio] = useState("");
+  const [userLabel, setUserLabel] = useState("");
+  const [pendentes, setPendentes] = useState(0);
+  const [busca, setBusca] = useState("");
+
+  useEffect(() => {
+    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
+      setNomeNegocio(d?.nomeNegocio ?? "");
+    });
+    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => {
+      setPendentes(d?.count ?? 0);
+    });
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data.user?.email ?? "";
+      const meta = data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? "";
+      setUserLabel(meta || email.split("@")[0]);
+    });
+
+    window.addEventListener("perfilUpdated", () => {
+      fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => setNomeNegocio(d?.nomeNegocio ?? ""));
+    });
+    window.addEventListener("vendas-pendentes-updated", () => {
+      fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
+    });
+  }, []);
+
+  function handleBusca(e: React.FormEvent) {
+    e.preventDefault();
+    if (!busca.trim()) return;
+    router.push(`/clientes?q=${encodeURIComponent(busca.trim())}`);
+    setBusca("");
+  }
+
+  return (
+    <header className="sticky top-0 w-full z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
+      {/* Mobile: hamburger */}
+      <button
+        onClick={onMobileMenuOpen}
+        className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 shrink-0"
+      >
+        <Menu size={22} />
+      </button>
+
+      {/* Desktop: abrir sidebar quando fechada */}
+      {!desktopOpen && (
+        <button
+          onClick={onDesktopOpen}
+          className="hidden lg:flex text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors shrink-0"
+          title="Abrir menu"
+        >
+          <PanelLeftOpen size={22} />
+        </button>
+      )}
+
+      {/* Mobile: logo */}
+      <div className="flex items-center gap-2 lg:hidden">
+        <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
+          <TrendingUp size={13} className="text-white" />
+        </div>
+        <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
+      </div>
+
+      {/* Search — desktop only */}
+      <form onSubmit={handleBusca} className="hidden lg:flex items-center flex-1 max-w-sm">
+        <div className="relative w-full">
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar cliente..."
+            className="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-full py-2.5 pl-10 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all"
+          />
+        </div>
+      </form>
+
+      {/* Right side */}
+      <div className="flex items-center gap-2 lg:gap-4 ml-auto lg:ml-0">
+        {/* Notificações */}
+        <Link
+          href="/relatorios"
+          className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          title="Notificações"
+        >
+          <Bell size={20} />
+          {pendentes > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          )}
+        </Link>
+
+        {/* Histórico */}
+        <Link
+          href="/transacoes"
+          className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          title="Histórico de transações"
+        >
+          <History size={20} />
+        </Link>
+
+        {/* Separador */}
+        <div className="hidden lg:block h-8 w-px bg-gray-200 dark:bg-gray-700" />
+
+        {/* User */}
+        <Link href="/perfil" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+          <div className="hidden lg:block text-right">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">
+              {userLabel || "Usuário"}
+            </p>
+            {nomeNegocio && (
+              <p className="text-[11px] text-green-600 dark:text-green-400 font-medium leading-tight">
+                {nomeNegocio}
+              </p>
+            )}
+          </div>
+          <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center ring-2 ring-green-500/20 shrink-0">
+            <span className="text-xs font-bold text-green-700 dark:text-green-400">
+              {getInitials(userLabel || nomeNegocio || "MV")}
+            </span>
+          </div>
+        </Link>
+      </div>
+    </header>
+  );
+}
+
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(true);
@@ -212,10 +353,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar mobile overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar mobile drawer */}
@@ -228,38 +366,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${
-          desktopOpen ? "lg:ml-64" : "lg:ml-0"
-        }`}
-      >
-        {/* Header mobile */}
-        <header className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-          >
-            <Menu size={22} />
-          </button>
-
-          {!desktopOpen && (
-            <button
-              onClick={() => setDesktopOpen(true)}
-              className="hidden lg:flex text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-              title="Abrir menu"
-            >
-              <PanelLeftOpen size={22} />
-            </button>
-          )}
-
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
-              <TrendingUp size={13} className="text-white" />
-            </div>
-            <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
-          </div>
-        </header>
-
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${desktopOpen ? "lg:ml-64" : "lg:ml-0"}`}>
+        <AppHeader
+          onMobileMenuOpen={() => setMobileOpen(true)}
+          desktopOpen={desktopOpen}
+          onDesktopOpen={() => setDesktopOpen(true)}
+        />
         <main className="flex-1 p-4 lg:p-8">
           {children}
         </main>

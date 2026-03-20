@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle } from "lucide-react";
 
 interface Transaction {
@@ -325,7 +326,13 @@ export default function Clientes() {
   const [selected, setSelected] = useState<Cliente | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [historicoCliente, setHistoricoCliente] = useState<Cliente | null>(null);
-  const [busca, setBusca] = useState("");
+  const searchParams = useSearchParams();
+  const [busca, setBusca] = useState(searchParams.get("q") ?? "");
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setBusca(q);
+  }, [searchParams]);
 
   async function load() {
     const res = await fetch("/api/clientes");
