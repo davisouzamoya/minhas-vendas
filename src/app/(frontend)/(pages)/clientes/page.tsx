@@ -373,7 +373,7 @@ export default function Clientes() {
       {historicoCliente && <HistoricoModal cliente={historicoCliente} onClose={() => setHistoricoCliente(null)} />}
 
       {/* Header */}
-      <div className="flex items-end justify-between mb-2">
+      <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meus Clientes</h1>
           {clientes.length > 0 && (
@@ -400,17 +400,6 @@ export default function Clientes() {
         </div>
       ) : (
         <>
-          {/* Search */}
-          <div className="mt-4 mb-6">
-            <input
-              type="text"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome ou telefone..."
-              className="w-full sm:w-80 px-4 py-2.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30"
-            />
-          </div>
-
           {/* Cards grid — top 4 (priorizando aniversariantes) */}
           {cardClientes.length > 0 && (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-8">
