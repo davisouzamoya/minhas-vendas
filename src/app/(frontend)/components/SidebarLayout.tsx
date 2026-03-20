@@ -199,18 +199,29 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
   const pathname = usePathname();
   const [busca, setBusca] = useState("");
 
-  // Limpa busca ao sair da página de clientes
-  useEffect(() => {
-    if (!pathname.startsWith("/clientes")) setBusca("");
-  }, [pathname]);
+  const searchBase = pathname.startsWith("/fornecedores")
+    ? "/fornecedores"
+    : pathname.startsWith("/clientes")
+    ? "/clientes"
+    : null;
 
-  // Debounce: navega para /clientes?q= 300ms após parar de digitar
+  const searchPlaceholder = pathname.startsWith("/fornecedores")
+    ? "Buscar fornecedor..."
+    : "Buscar cliente...";
+
+  // Limpa busca ao trocar de página pesquisável
   useEffect(() => {
+    setBusca("");
+  }, [searchBase]);
+
+  // Debounce: navega com ?q= 300ms após parar de digitar
+  useEffect(() => {
+    if (!searchBase) return;
     const t = setTimeout(() => {
       if (busca.trim()) {
-        router.replace(`/clientes?q=${encodeURIComponent(busca.trim())}`);
-      } else if (pathname.startsWith("/clientes")) {
-        router.replace("/clientes");
+        router.replace(`${searchBase}?q=${encodeURIComponent(busca.trim())}`);
+      } else {
+        router.replace(searchBase);
       }
     }, 300);
     return () => clearTimeout(t);
@@ -271,15 +282,15 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
         <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
       </div>
 
-      {/* Search — desktop only */}
-      <div className="hidden lg:flex items-center flex-1 max-w-sm">
+      {/* Search — desktop only, visível em clientes e fornecedores */}
+      <div className={`items-center flex-1 max-w-sm ${searchBase ? "hidden lg:flex" : "hidden"}`}>
         <div className="relative w-full">
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             type="text"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar cliente..."
+            placeholder={searchPlaceholder}
             className="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-full py-2.5 pl-10 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all"
           />
         </div>

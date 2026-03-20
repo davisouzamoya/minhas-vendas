@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar } from "lucide-react";
 
 interface Fornecedor {
@@ -186,6 +187,8 @@ export default function Fornecedores() {
   const [selected, setSelected] = useState<Fornecedor | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [historicoFornecedor, setHistoricoFornecedor] = useState<Fornecedor | null>(null);
+  const searchParams = useSearchParams();
+  const busca = searchParams.get("q")?.toLowerCase() ?? "";
 
   async function load() {
     const res = await fetch("/api/fornecedores");
@@ -201,6 +204,14 @@ export default function Fornecedores() {
     setDeleteId(null);
     load();
   }
+
+  const filtrados = busca
+    ? fornecedores.filter((f) =>
+        f.nome.toLowerCase().includes(busca) ||
+        (f.telefone ?? "").includes(busca) ||
+        (f.email ?? "").toLowerCase().includes(busca)
+      )
+    : fornecedores;
 
   return (
     <div className="pb-8">
@@ -240,7 +251,7 @@ export default function Fornecedores() {
             </div>
             <div>
               <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Total</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{fornecedores.length} {fornecedores.length === 1 ? "ativo" : "ativos"}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{filtrados.length} {filtrados.length === 1 ? "ativo" : "ativos"}</p>
             </div>
           </div>
         </div>
@@ -261,7 +272,7 @@ export default function Fornecedores() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {fornecedores.map((f) => (
+          {filtrados.map((f) => (
             <div
               key={f.id}
               className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 hover:-translate-y-1 transition-all duration-300"
