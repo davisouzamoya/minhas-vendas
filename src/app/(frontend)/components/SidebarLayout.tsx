@@ -98,15 +98,8 @@ function SidebarContent({
       {/* Logo */}
       <div className="flex items-start justify-between px-3 mb-8">
         <div className="flex items-center gap-2.5">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
-          ) : (
-            <div className="w-8 h-8 bg-green-700 dark:bg-green-600 rounded-lg flex items-center justify-center shrink-0">
-              <TrendingUp size={16} className="text-white" />
-            </div>
-          )}
           <div>
-            <p className="font-bold text-green-950 dark:text-white text-base leading-tight tracking-tight truncate max-w-[140px]">
+            <p className="font-bold text-green-950 dark:text-white text-base leading-tight tracking-tight truncate max-w-[160px]">
               {nomeNegocio || "Minhas Vendas"}
             </p>
             <p className="text-[10px] uppercase tracking-widest text-green-700 dark:text-green-400 font-medium opacity-70">
@@ -200,6 +193,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
 }) {
   const router = useRouter();
   const [nomeNegocio, setNomeNegocio] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [userLabel, setUserLabel] = useState("");
   const [pendentes, setPendentes] = useState(0);
   const pathname = usePathname();
@@ -225,6 +219,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
   useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
       setNomeNegocio(d?.nomeNegocio ?? "");
+      setLogoUrl(d?.logoUrl ?? "");
     });
     fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => {
       setPendentes(d?.count ?? 0);
@@ -237,7 +232,10 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
     });
 
     window.addEventListener("perfilUpdated", () => {
-      fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => setNomeNegocio(d?.nomeNegocio ?? ""));
+      fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
+        setNomeNegocio(d?.nomeNegocio ?? "");
+        setLogoUrl(d?.logoUrl ?? "");
+      });
     });
     window.addEventListener("vendas-pendentes-updated", () => {
       fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
@@ -325,11 +323,15 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
               </p>
             )}
           </div>
-          <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center ring-2 ring-green-500/20 shrink-0">
-            <span className="text-xs font-bold text-green-700 dark:text-green-400">
-              {getInitials(userLabel || nomeNegocio || "MV")}
-            </span>
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-9 h-9 rounded-full object-cover ring-2 ring-green-500/20 shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center ring-2 ring-green-500/20 shrink-0">
+              <span className="text-xs font-bold text-green-700 dark:text-green-400">
+                {getInitials(userLabel || nomeNegocio || "MV")}
+              </span>
+            </div>
+          )}
         </Link>
       </div>
     </header>
