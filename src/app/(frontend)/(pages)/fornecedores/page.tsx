@@ -235,7 +235,11 @@ export default function Fornecedores() {
           onClick={() => setModal("new")}
           className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
         >
-          <Plus size={16} /> Novo Fornecedor
+          <div className="relative">
+            <Building2 size={16} />
+            <Plus size={9} className="absolute -top-1 -right-1.5 stroke-[3]" />
+          </div>
+          Novo Fornecedor
         </button>
       </div>
 
@@ -354,7 +358,10 @@ export default function Fornecedores() {
           className="group w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95"
           title="Adicionar fornecedor"
         >
-          <Plus size={22} />
+          <div className="relative">
+            <Building2 size={20} />
+            <Plus size={11} className="absolute -top-1 -right-1.5 stroke-[3]" />
+          </div>
           <span className="absolute right-full mr-3 bg-gray-900 dark:bg-gray-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
             Adicionar Fornecedor
           </span>
