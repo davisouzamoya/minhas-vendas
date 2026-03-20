@@ -52,7 +52,6 @@ function HistoricoModal({ fornecedor, onClose }: { fornecedor: Fornecedor; onClo
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">Histórico — {fornecedor.nome}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl">×</button>
         </div>
-
         {!loading && (
           <div className="grid grid-cols-3 gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
             <div className="text-center">
@@ -72,13 +71,11 @@ function HistoricoModal({ fornecedor, onClose }: { fornecedor: Fornecedor; onClo
             </div>
           </div>
         )}
-
         {ultimaCompra && (
           <p className="text-xs text-gray-400 px-5 pt-3">
             Última compra: <span className="text-gray-600 dark:text-gray-300 font-medium">{formatDate(ultimaCompra)}</span>
           </p>
         )}
-
         <div className="overflow-y-auto flex-1 mt-2">
           {loading ? (
             <p className="text-sm text-gray-400 p-5">Carregando...</p>
@@ -206,7 +203,7 @@ export default function Fornecedores() {
   }
 
   return (
-    <div>
+    <div className="pb-8">
       {(modal === "new" || modal === "edit") && (
         <FornecedorModal
           fornecedor={modal === "edit" ? selected ?? undefined : undefined}
@@ -217,48 +214,125 @@ export default function Fornecedores() {
       {deleteId && <ConfirmModal onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />}
       {historicoFornecedor && <HistoricoModal fornecedor={historicoFornecedor} onClose={() => setHistoricoFornecedor(null)} />}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fornecedores</h1>
-        <button onClick={() => setModal("new")} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-          <Plus size={16} /> Novo fornecedor
+      {/* Header */}
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fornecedores</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gerencie quem ajuda o seu negócio a crescer.</p>
+        </div>
+        <button
+          onClick={() => setModal("new")}
+          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
+        >
+          <Plus size={16} /> Novo Fornecedor
         </button>
       </div>
 
+      {/* Stat */}
+      {fornecedores.length > 0 && (
+        <div className="mb-8">
+          <div
+            className="inline-flex items-center gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 w-56"
+            style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
+          >
+            <div className="p-2.5 bg-green-50 dark:bg-green-900/30 rounded-full">
+              <Building2 size={20} className="text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Total</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white">{fornecedores.length} {fornecedores.length === 1 ? "ativo" : "ativos"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grid */}
       {fornecedores.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center py-16 gap-3">
-          <Building2 size={48} className="text-gray-300 dark:text-gray-600" />
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum fornecedor cadastrado ainda.</p>
-          <button onClick={() => setModal("new")} className="mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-            Adicionar primeiro fornecedor
-          </button>
+        <div
+          className="border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center py-16 gap-3 cursor-pointer hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-colors"
+          style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
+          onClick={() => setModal("new")}
+        >
+          <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 group-hover:scale-110 transition-transform">
+            <Plus size={28} />
+          </div>
+          <p className="font-semibold text-gray-500 dark:text-gray-400">Nenhum fornecedor ainda</p>
+          <p className="text-sm text-gray-400">Clique para cadastrar o primeiro</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {fornecedores.map((f) => (
-            <div key={f.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div>
-                <p className="font-medium text-gray-800 dark:text-gray-100">{f.nome}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  {f.telefone && <span className="flex items-center gap-1 text-xs text-gray-400"><Phone size={11} />{f.telefone}</span>}
-                  {f.email && <span className="flex items-center gap-1 text-xs text-gray-400"><Mail size={11} />{f.email}</span>}
+            <div
+              key={f.id}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 hover:-translate-y-1 transition-all duration-300"
+              style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
+            >
+              {/* Card top */}
+              <div className="flex items-start justify-between mb-5">
+                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <Building2 size={22} className="text-green-600 dark:text-green-400" />
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setHistoricoFornecedor(f)}
+                    className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    title="Histórico"
+                  >
+                    <History size={16} />
+                  </button>
+                  <button
+                    onClick={() => { setSelected(f); setModal("edit"); }}
+                    className="p-1.5 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                    title="Editar"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteId(f.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    title="Excluir"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setHistoricoFornecedor(f)}
-                  className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Histórico">
-                  <History size={14} />
-                </button>
-                <button onClick={() => { setSelected(f); setModal("edit"); }}
-                  className="p-1.5 text-gray-400 hover:text-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                  <Pencil size={14} />
-                </button>
-                <button onClick={() => setDeleteId(f.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  <Trash2 size={14} />
-                </button>
+
+              {/* Nome */}
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{f.nome}</h3>
+
+              {/* Contato */}
+              <div className="space-y-2">
+                {f.telefone && (
+                  <div className="flex items-center gap-2.5 text-gray-500 dark:text-gray-400">
+                    <Phone size={14} />
+                    <span className="text-sm">{f.telefone}</span>
+                  </div>
+                )}
+                {f.email && (
+                  <div className="flex items-center gap-2.5 text-gray-500 dark:text-gray-400">
+                    <Mail size={14} />
+                    <span className="text-sm truncate">{f.email}</span>
+                  </div>
+                )}
+                {!f.telefone && !f.email && (
+                  <p className="text-sm text-gray-300 dark:text-gray-600 italic">Sem contato cadastrado</p>
+                )}
               </div>
             </div>
           ))}
+
+          {/* Card "Adicionar novo" */}
+          <div
+            className="border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 flex flex-col items-center justify-center text-center opacity-60 hover:opacity-100 hover:border-green-400 hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-all cursor-pointer"
+            style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
+            onClick={() => setModal("new")}
+          >
+            <div className="w-14 h-14 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3 transition-transform hover:scale-110">
+              <Plus size={24} className="text-gray-400" />
+            </div>
+            <p className="font-semibold text-gray-500 dark:text-gray-400">Adicionar Novo</p>
+            <p className="text-sm text-gray-400 mt-1">Cadastre um fornecedor em segundos</p>
+          </div>
         </div>
       )}
     </div>
