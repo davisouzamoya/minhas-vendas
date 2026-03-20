@@ -346,6 +346,20 @@ export default function Fornecedores() {
           </div>
         </div>
       )}
+
+      {/* FAB */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setModal("new")}
+          className="group w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform active:scale-95"
+          title="Adicionar fornecedor"
+        >
+          <Plus size={22} />
+          <span className="absolute right-full mr-3 bg-gray-900 dark:bg-gray-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Adicionar Fornecedor
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
