@@ -202,7 +202,25 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [userLabel, setUserLabel] = useState("");
   const [pendentes, setPendentes] = useState(0);
+  const pathname = usePathname();
   const [busca, setBusca] = useState("");
+
+  // Limpa busca ao sair da página de clientes
+  useEffect(() => {
+    if (!pathname.startsWith("/clientes")) setBusca("");
+  }, [pathname]);
+
+  // Debounce: navega para /clientes?q= 300ms após parar de digitar
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (busca.trim()) {
+        router.replace(`/clientes?q=${encodeURIComponent(busca.trim())}`);
+      } else if (pathname.startsWith("/clientes")) {
+        router.replace("/clientes");
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busca]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
@@ -225,13 +243,6 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
       fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
     });
   }, []);
-
-  function handleBusca(e: React.FormEvent) {
-    e.preventDefault();
-    if (!busca.trim()) return;
-    router.push(`/clientes?q=${encodeURIComponent(busca.trim())}`);
-    setBusca("");
-  }
 
   return (
     <header className="sticky top-0 w-full z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
@@ -263,7 +274,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
       </div>
 
       {/* Search — desktop only */}
-      <form onSubmit={handleBusca} className="hidden lg:flex items-center flex-1 max-w-sm">
+      <div className="hidden lg:flex items-center flex-1 max-w-sm">
         <div className="relative w-full">
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
@@ -274,7 +285,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
             className="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-full py-2.5 pl-10 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all"
           />
         </div>
-      </form>
+      </div>
 
       {/* Right side */}
       <div className="flex items-center gap-2 lg:gap-4 ml-auto lg:ml-0">
