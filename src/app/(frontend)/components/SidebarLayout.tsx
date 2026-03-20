@@ -21,6 +21,7 @@ import {
   Users,
   Building2,
   Settings,
+  Plus,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
@@ -50,9 +51,7 @@ function SidebarContent({
   const [logoUrl, setLogoUrl] = useState("");
   const [pendentes, setPendentes] = useState(0);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   function fetchPerfil() {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
@@ -86,41 +85,46 @@ function SidebarContent({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full py-6 px-3">
       {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between px-3 mb-8">
+        <div className="flex items-center gap-2.5">
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover shrink-0" />
           ) : (
-            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
-              <TrendingUp size={18} className="text-white" />
+            <div className="w-8 h-8 bg-green-700 dark:bg-green-600 rounded-lg flex items-center justify-center shrink-0">
+              <TrendingUp size={16} className="text-white" />
             </div>
           )}
-          <span className="font-bold text-gray-900 dark:text-white text-lg truncate">
-            {nomeNegocio || "Minhas Vendas"}
-          </span>
+          <div>
+            <p className="font-bold text-green-950 dark:text-white text-base leading-tight tracking-tight truncate max-w-[140px]">
+              {nomeNegocio || "Minhas Vendas"}
+            </p>
+            <p className="text-[10px] uppercase tracking-widest text-green-700 dark:text-green-400 font-medium opacity-70">
+              Gestão Digital
+            </p>
+          </div>
         </div>
-        {/* Fechar mobile */}
-        {onClose && (
-          <button onClick={onClose} className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <X size={20} />
-          </button>
-        )}
-        {/* Fechar desktop */}
-        {onDesktopClose && (
-          <button
-            onClick={onDesktopClose}
-            className="hidden lg:flex text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            title="Fechar menu"
-          >
-            <PanelLeftClose size={20} />
-          </button>
-        )}
+        <div className="flex items-center gap-1 mt-0.5">
+          {onClose && (
+            <button onClick={onClose} className="lg:hidden text-green-800 dark:text-gray-400 hover:text-green-950 dark:hover:text-gray-200 p-1">
+              <X size={18} />
+            </button>
+          )}
+          {onDesktopClose && (
+            <button
+              onClick={onDesktopClose}
+              className="hidden lg:flex text-green-800 dark:text-gray-400 hover:text-green-950 dark:hover:text-gray-200 transition-colors p-1"
+              title="Fechar menu"
+            >
+              <PanelLeftClose size={18} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 space-y-0.5">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -128,13 +132,14 @@ function SidebarContent({
               key={href}
               href={href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+                  ? "bg-white dark:bg-white/10 text-green-700 dark:text-green-400 font-bold shadow-sm"
+                  : "text-green-900 dark:text-gray-400 hover:bg-green-200/60 dark:hover:bg-white/5"
               }`}
+              style={active ? { borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" } : { borderRadius: "0.5rem" }}
             >
-              <Icon size={18} />
+              <Icon size={18} className={active ? "text-green-600 dark:text-green-400" : ""} />
               <span className="flex-1">{label}</span>
               {href === "/relatorios" && pendentes > 0 && (
                 <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
@@ -146,18 +151,30 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Theme toggle + Logout */}
-      <div className="px-3 py-4 border-t border-gray-200 dark:border-gray-800 space-y-1">
+      {/* Nova Venda CTA */}
+      <div className="px-1 my-5">
+        <Link
+          href="/nova"
+          onClick={onClose}
+          className="w-full flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 dark:bg-green-600 dark:hover:bg-green-700 text-white py-3.5 rounded-full font-bold text-sm shadow-lg shadow-green-900/20 hover:scale-[1.02] transition-transform"
+        >
+          <Plus size={18} />
+          Nova Venda
+        </Link>
+      </div>
+
+      {/* Theme + Logout */}
+      <div className="space-y-0.5">
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-green-900 dark:text-gray-400 hover:bg-green-200/60 dark:hover:bg-white/5 transition-colors"
         >
           {mounted ? (theme === "dark" ? <Sun size={18} /> : <Moon size={18} />) : <Moon size={18} />}
           {mounted ? (theme === "dark" ? "Modo Claro" : "Modo Escuro") : "Modo Escuro"}
         </button>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
           <LogOut size={18} />
           Sair
@@ -186,7 +203,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       {/* Sidebar desktop */}
       <aside
-        className={`hidden lg:flex fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col z-30 transition-transform duration-300 ${
+        className={`hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30 transition-transform duration-300 ${
           desktopOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -203,7 +220,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar mobile drawer */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 z-50 transition-transform duration-300 lg:hidden ${
+        className={`fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 z-50 transition-transform duration-300 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -216,9 +233,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           desktopOpen ? "lg:ml-64" : "lg:ml-0"
         }`}
       >
-        {/* Header (mobile + desktop quando sidebar fechada) */}
+        {/* Header mobile */}
         <header className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
-          {/* Mobile: sempre mostra hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
             className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -226,7 +242,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             <Menu size={22} />
           </button>
 
-          {/* Desktop: mostra botão abrir só quando fechado */}
           {!desktopOpen && (
             <button
               onClick={() => setDesktopOpen(true)}
