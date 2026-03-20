@@ -330,8 +330,7 @@ export default function Clientes() {
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
 
   useEffect(() => {
-    const q = searchParams.get("q");
-    if (q) setBusca(q);
+    setBusca(searchParams.get("q") ?? "");
   }, [searchParams]);
 
   async function load() {
