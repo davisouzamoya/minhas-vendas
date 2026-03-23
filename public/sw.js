@@ -21,18 +21,24 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Não intercepta chamadas de API
+  // Só intercepta http/https — ignora chrome-extension e outros esquemas
+  if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+  // Não intercepta chamadas de API nem requests não-GET
   if (url.pathname.startsWith("/api/")) return;
+  if (request.method !== "GET") return;
 
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (response.ok && request.method === "GET") {
+        if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
       })
-      .catch(() => caches.match(request))
+      .catch(() =>
+        caches.match(request).then((cached) => cached ?? Response.error())
+      )
   );
 });
