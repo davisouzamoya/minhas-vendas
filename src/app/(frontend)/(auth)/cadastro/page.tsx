@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { TrendingUp, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 export default function Cadastro() {
@@ -12,7 +13,7 @@ export default function Cadastro() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,29 +44,7 @@ export default function Cadastro() {
       return;
     }
 
-    setSucesso(true);
-  }
-
-  if (sucesso) {
-    return (
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm text-center">
-          <div className="flex justify-center mb-4">
-            <CheckCircle size={48} className="text-green-500" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Conta criada!</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Enviamos um e-mail de confirmação para <strong>{email}</strong>. Confirme para acessar.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm text-center transition-colors"
-          >
-            Ir para o login
-          </Link>
-        </div>
-      </div>
-    );
+    router.push("/dashboard");
   }
 
   return (
