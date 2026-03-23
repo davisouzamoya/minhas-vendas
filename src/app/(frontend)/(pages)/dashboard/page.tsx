@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import OnboardingChecklist from "@/app/(frontend)/components/OnboardingChecklist";
@@ -109,7 +109,7 @@ function Variacao({ variacao, invertido = false }: { variacao: number; invertido
   );
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
   const searchParams = useSearchParams();
@@ -442,5 +442,13 @@ export default function Dashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
   );
 }

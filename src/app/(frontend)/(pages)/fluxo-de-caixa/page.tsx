@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { TrendingUp, TrendingDown, Wallet, Download, Star, AlertTriangle, ShoppingBag, Receipt } from "lucide-react";
 
@@ -67,7 +67,7 @@ function PerformanceChart({ data }: { data: FluxoRow[] }) {
   );
 }
 
-export default function FluxoDeCaixa() {
+function FluxoDeCaixaContent() {
   const [rows, setRows] = useState<FluxoRow[]>([]);
   const [maioresVendas, setMaioresVendas] = useState<TopItem[]>([]);
   const [maioresGastos, setMaioresGastos] = useState<TopItem[]>([]);
@@ -295,5 +295,13 @@ export default function FluxoDeCaixa() {
         </>
       )}
     </div>
+  );
+}
+
+export default function FluxoDeCaixa() {
+  return (
+    <Suspense fallback={null}>
+      <FluxoDeCaixaContent />
+    </Suspense>
   );
 }

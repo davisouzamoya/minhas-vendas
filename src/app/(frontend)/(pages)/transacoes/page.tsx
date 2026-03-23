@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -394,7 +394,7 @@ function exportToCsv(transactions: Transaction[]) {
 }
 
 // --- Main Page ---
-export default function Transacoes() {
+function TransacoesContent() {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
@@ -993,5 +993,13 @@ export default function Transacoes() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Transacoes() {
+  return (
+    <Suspense fallback={null}>
+      <TransacoesContent />
+    </Suspense>
   );
 }
