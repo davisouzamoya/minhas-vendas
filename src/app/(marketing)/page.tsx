@@ -24,6 +24,8 @@ export default function LandingPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Manrope:wght@400;500;600&display=swap');
         .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .benefit-card { border-bottom: 4px solid rgba(107,255,143,0.15); transition: border-color 0.2s; }
+        .benefit-card:hover { border-bottom-color: #6bff8f; }
       `}</style>
 
       {/* Nav */}
@@ -200,14 +202,8 @@ export default function LandingPage() {
               ].map(({ icon: Icon, title, desc }) => (
                 <div
                   key={title}
-                  className="group p-8 rounded-2xl transition-all cursor-default"
-                  style={{
-                    backgroundColor: "#0f1930",
-                    borderBottom: "4px solid rgba(107,255,143,0.15)",
-                    transition: "border-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderBottomColor = "#6bff8f")}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderBottomColor = "rgba(107,255,143,0.15)")}
+                  className="benefit-card p-8 rounded-2xl cursor-default"
+                  style={{ backgroundColor: "#0f1930" }}
                 >
                   <div
                     className="w-12 h-12 rounded-xl flex items-center justify-center mb-6"
