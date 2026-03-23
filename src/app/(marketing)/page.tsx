@@ -299,7 +299,7 @@ export default function LandingPage() {
             <div className="flex flex-col items-center">
               <div
                 className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mb-4 ring-4"
-                style={{ backgroundColor: "#192540", color: "#6bff8f", ringColor: "#0f1930" }}
+                style={{ backgroundColor: "#192540", color: "#6bff8f" }}
               >
                 RA
               </div>
