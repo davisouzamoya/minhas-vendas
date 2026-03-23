@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -256,7 +256,7 @@ function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
 const PER_PAGE = 10;
 type Tab = "todos" | "devedores" | "novos" | "inativos";
 
-export default function Clientes() {
+function ClientesContent() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [stats, setStats] = useState<Stats>({ totalClientes: 0, emDebito: 0, inativos: 0, aniversariantes: 0 });
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
@@ -614,5 +614,13 @@ export default function Clientes() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function Clientes() {
+  return (
+    <Suspense fallback={null}>
+      <ClientesContent />
+    </Suspense>
   );
 }
