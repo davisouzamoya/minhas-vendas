@@ -40,8 +40,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const perfil = await prisma.perfil.upsert({
       where: { userId },
-      update: { nomeNegocio: body.nomeNegocio, logoUrl: body.logoUrl ?? null },
-      create: { userId, nomeNegocio: body.nomeNegocio, logoUrl: body.logoUrl ?? null },
+      update: { nomeNegocio: body.nomeNegocio, logoUrl: body.logoUrl ?? null, metaMensal: body.metaMensal ? parseFloat(body.metaMensal) : null },
+      create: { userId, nomeNegocio: body.nomeNegocio, logoUrl: body.logoUrl ?? null, metaMensal: body.metaMensal ? parseFloat(body.metaMensal) : null },
     });
 
     return NextResponse.json(perfil);

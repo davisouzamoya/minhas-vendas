@@ -3,7 +3,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, ImagePlus, X, AlertTriangle } from "lucide-react";
+import {
+  CheckCircle,
+  X,
+  AlertTriangle,
+  ShoppingCart,
+  Receipt,
+  TrendingUp,
+  TrendingDown,
+  Camera,
+  Link2,
+} from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
@@ -15,6 +25,13 @@ type Tipo = (typeof TIPOS)[number];
 
 interface Cliente { id: number; nome: string; }
 interface Fornecedor { id: number; nome: string; }
+
+const TIPO_CONFIG = {
+  venda:   { label: "Venda",   icon: ShoppingCart, filled: true },
+  despesa: { label: "Despesa", icon: Receipt,       filled: false },
+  entrada: { label: "Entrada", icon: TrendingUp,    filled: false },
+  saida:   { label: "Saída",   icon: TrendingDown,  filled: false },
+};
 
 const defaultForm = {
   tipo: "venda" as Tipo,
@@ -35,7 +52,12 @@ const defaultForm = {
   meses: 3,
 };
 
-export default function NovaTransacao() {
+const inputCls =
+  "w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all";
+const selectCls =
+  "w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all appearance-none";
+
+export default function NovaVenda() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -59,7 +81,6 @@ export default function NovaTransacao() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Only show banner if form has meaningful content
         if (parsed.produto || parsed.valor_total || parsed.observacoes) {
           setHasDraft(true);
         }
@@ -106,9 +127,7 @@ export default function NovaTransacao() {
     }
   }
 
-  // Auto-save draft on form changes (debounced via useEffect)
   useEffect(() => {
-    // Don't save empty default forms
     if (form.produto || form.valor_total || form.observacoes || form.fotoUrl) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     }
@@ -152,18 +171,14 @@ export default function NovaTransacao() {
   async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Show local preview immediately
     const localUrl = URL.createObjectURL(file);
     setFotoPreview(localUrl);
-
     setUploadingFoto(true);
     try {
       const ext = file.name.split(".").pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("fotos").upload(fileName, file, { upsert: false });
       if (error) throw error;
-
       const { data: urlData } = supabase.storage.from("fotos").getPublicUrl(fileName);
       setForm((prev) => ({ ...prev, fotoUrl: urlData.publicUrl }));
       setFotoPreview(urlData.publicUrl);
@@ -188,7 +203,6 @@ export default function NovaTransacao() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.valor_total) return;
-
     setLoading(true);
     const res = await fetch("/api/transactions", {
       method: "POST",
@@ -213,7 +227,6 @@ export default function NovaTransacao() {
       }),
     });
     setLoading(false);
-
     if (res.ok) {
       localStorage.removeItem(DRAFT_KEY);
       setSuccess(true);
@@ -225,20 +238,19 @@ export default function NovaTransacao() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <CheckCircle size={56} className="text-green-500" />
-        <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">Transação registrada!</p>
+        <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">Venda registrada!</p>
         <p className="text-sm text-gray-400">Redirecionando...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Nova Transação</h1>
+    <div className="w-full max-w-4xl mx-auto pb-12">
 
       {/* Draft restore banner */}
       {hasDraft && (
-        <div className="mb-4 flex items-center justify-between gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
-          <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+        <div className="mb-6 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-sm text-amber-800 font-medium">
             Você tem um rascunho salvo. Deseja restaurar?
           </p>
           <div className="flex gap-2">
@@ -247,275 +259,426 @@ export default function NovaTransacao() {
               Restaurar
             </button>
             <button onClick={discardDraft}
-              className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:underline">
+              className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:underline">
               Descartar
             </button>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 space-y-5">
-
-        {/* Tipo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
-          <div className="grid grid-cols-4 gap-2">
-            {TIPOS.map((t) => (
-              <button key={t} type="button" onClick={() => set("tipo", t)}
-                className={`py-2 rounded-lg text-sm font-medium capitalize border transition-colors ${
-                  form.tipo === t ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400"
-                }`}>
-                {t === "saida" ? "Saída" : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Cliente (venda/entrada) */}
-        {usaCliente && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
-              {clientes.length === 0 && (
-                <Link href="/clientes" className="text-xs text-green-600 hover:underline">
-                  + Cadastrar cliente
-                </Link>
-              )}
-            </div>
-            {clientes.length === 0 ? (
-              <p className="text-xs text-gray-400 py-2">Nenhum cliente cadastrado. <Link href="/clientes" className="text-green-600 hover:underline">Clique aqui para cadastrar.</Link></p>
-            ) : (
-              <select value={form.clienteId} onChange={(e) => set("clienteId", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Sem cliente</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            )}
-            {divida && (
-              <div className="mt-2 flex items-start gap-2 px-3 py-2.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                <AlertTriangle size={15} className="text-orange-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-orange-800 dark:text-orange-300">
-                  Este cliente possui <span className="font-semibold">{divida.count} venda{divida.count !== 1 ? "s" : ""} pendente{divida.count !== 1 ? "s" : ""}</span> em aberto no valor de{" "}
-                  <span className="font-semibold">{divida.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>.{" "}
-                  <Link href="/relatorios" className="underline hover:text-orange-600">Ver inadimplência</Link>
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Fornecedor (despesa/saida) */}
-        {usaFornecedor && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fornecedor</label>
-              {fornecedores.length === 0 && (
-                <Link href="/fornecedores" className="text-xs text-green-600 hover:underline">
-                  + Cadastrar fornecedor
-                </Link>
-              )}
-            </div>
-            {fornecedores.length === 0 ? (
-              <p className="text-xs text-gray-400 py-2">Nenhum fornecedor cadastrado. <Link href="/fornecedores" className="text-green-600 hover:underline">Clique aqui para cadastrar.</Link></p>
-            ) : (
-              <select value={form.fornecedorId} onChange={(e) => set("fornecedorId", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Sem fornecedor</option>
-                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-              </select>
-            )}
-          </div>
-        )}
-
-        {/* Produto + Categoria */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto</label>
-            <input type="text" value={form.produto} onChange={(e) => set("produto", e.target.value)}
-              placeholder="Ex: Camiseta"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
-              <button type="button" onClick={() => setShowAddCat((v) => !v)} className="text-xs text-green-600 dark:text-green-400 hover:underline">
-                {showAddCat ? "Fechar" : "+ Gerenciar"}
-              </button>
-            </div>
-            <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-              <option value="">Sem categoria</option>
-              {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-            </select>
-          </div>
-        </div>
-        {showAddCat && (
-          <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-2">
-            <div className="flex gap-2">
-              <input
-                value={novaCat}
-                onChange={(e) => setNovaCat(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategoria())}
-                placeholder="Nova categoria..."
-                className="flex-1 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
+      {/* Type Selector — Bento cards */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        {TIPOS.map((t) => {
+          const cfg = TIPO_CONFIG[t];
+          const Icon = cfg.icon;
+          const active = form.tipo === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => set("tipo", t)}
+              className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
+                active
+                  ? "border-green-600 bg-white dark:bg-gray-900 shadow-sm scale-105"
+                  : "border-transparent bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              <Icon
+                size={28}
+                className={active ? "text-green-600" : "text-gray-400"}
+                strokeWidth={active ? 2.5 : 1.5}
               />
-              <button type="button" onClick={addCategoria}
-                className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-                Adicionar
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {categorias.map((c) => (
-                <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full">
-                  {c}
-                  <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 transition-colors leading-none">×</button>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+              <span className={`text-sm font-bold ${active ? "text-green-600" : "text-gray-500"}`}>
+                {cfg.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Foto do produto */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do Produto</label>
-          {fotoPreview ? (
-            <div className="relative inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={fotoPreview} alt="Foto do produto" className="w-32 h-32 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
-              {uploadingFoto && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
-                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      <form onSubmit={handleSubmit} className="space-y-6">
+
+        {/* Section: Informações Gerais */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <h3 className="text-base font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
+            <ShoppingCart size={18} />
+            Informações Gerais
+          </h3>
+
+          {/* Cliente */}
+          {usaCliente && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Cliente</label>
+                {clientes.length === 0 && (
+                  <Link href="/clientes" className="text-xs text-green-600 hover:underline">
+                    + Cadastrar cliente
+                  </Link>
+                )}
+              </div>
+              {clientes.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">
+                  Nenhum cliente cadastrado.{" "}
+                  <Link href="/clientes" className="text-green-600 hover:underline">Clique aqui para cadastrar.</Link>
+                </p>
+              ) : (
+                <select value={form.clienteId} onChange={(e) => set("clienteId", e.target.value)} className={selectCls}>
+                  <option value="">Sem cliente</option>
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              )}
+              {divida && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-orange-50 border border-orange-200 rounded-xl mt-2">
+                  <AlertTriangle size={15} className="text-orange-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-orange-800">
+                    Este cliente possui{" "}
+                    <span className="font-semibold">{divida.count} venda{divida.count !== 1 ? "s" : ""} pendente{divida.count !== 1 ? "s" : ""}</span>{" "}
+                    no valor de{" "}
+                    <span className="font-semibold">{divida.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>.{" "}
+                    <Link href="/relatorios" className="underline hover:text-orange-600">Ver inadimplência</Link>
+                  </p>
                 </div>
               )}
-              {!uploadingFoto && (
-                <button type="button" onClick={removeFoto}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm">
-                  <X size={12} />
-                </button>
+            </div>
+          )}
+
+          {/* Fornecedor */}
+          {usaFornecedor && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Fornecedor</label>
+                {fornecedores.length === 0 && (
+                  <Link href="/fornecedores" className="text-xs text-green-600 hover:underline">
+                    + Cadastrar fornecedor
+                  </Link>
+                )}
+              </div>
+              {fornecedores.length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">
+                  Nenhum fornecedor cadastrado.{" "}
+                  <Link href="/fornecedores" className="text-green-600 hover:underline">Clique aqui para cadastrar.</Link>
+                </p>
+              ) : (
+                <select value={form.fornecedorId} onChange={(e) => set("fornecedorId", e.target.value)} className={selectCls}>
+                  <option value="">Sem fornecedor</option>
+                  {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                </select>
               )}
             </div>
-          ) : (
-            <button type="button" onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingFoto}
-              className="flex flex-col items-center justify-center w-32 h-32 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-600 text-gray-400 dark:text-gray-600 hover:text-green-600 dark:hover:text-green-500 transition-colors gap-2">
-              <ImagePlus size={24} />
-              <span className="text-xs">Adicionar foto</span>
-            </button>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFotoUpload}
-            className="hidden"
-          />
-          <p className="text-xs text-gray-400 mt-1">Formatos: JPG, PNG, WEBP (máx. 5MB)</p>
-        </div>
 
-        {/* Quantidade + Valor unitário + Total */}
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantidade</label>
-            <input type="number" value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)}
-              placeholder="0" min="0" step="0.01"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Unitário</label>
-            <input type="number" value={form.valor_unitario} onChange={(e) => set("valor_unitario", e.target.value)}
-              placeholder="0,00" min="0" step="0.01"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Valor Total *</label>
-            <input type="number" value={form.valor_total} onChange={(e) => set("valor_total", e.target.value)}
-              placeholder="0,00" min="0" step="0.01" required
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-        </div>
-
-        {/* Status de pagamento (só para vendas) */}
-        {form.tipo === "venda" && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status do Pagamento</label>
-            <select value={form.statusPagamento} onChange={(e) => set("statusPagamento", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-              <option value="">Não informado</option>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-            </select>
-          </div>
-        )}
-
-        {/* Recorrência (despesa/saida) */}
-        {usaFornecedor && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Produto / Serviço</label>
               <input
-                type="checkbox"
-                id="recorrente"
-                checked={form.recorrente}
-                onChange={(e) => setForm((prev) => ({ ...prev, recorrente: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                type="text"
+                value={form.produto}
+                onChange={(e) => set("produto", e.target.value)}
+                placeholder="O que você vendeu?"
+                className={inputCls}
               />
-              <label htmlFor="recorrente" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Despesa recorrente (repete mensalmente)
-              </label>
             </div>
-            {form.recorrente && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Repetir por quantos meses?</label>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Categoria</label>
+                <button type="button" onClick={() => setShowAddCat((v) => !v)} className="text-xs text-green-600 hover:underline">
+                  {showAddCat ? "Fechar" : "+ Gerenciar"}
+                </button>
+              </div>
+              <select value={form.categoria} onChange={(e) => set("categoria", e.target.value)} className={selectCls}>
+                <option value="">Sem categoria</option>
+                {categorias.map((c) => (
+                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {showAddCat && (
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 space-y-2">
+              <div className="flex gap-2">
+                <input
+                  value={novaCat}
+                  onChange={(e) => setNovaCat(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategoria())}
+                  placeholder="Nova categoria..."
+                  className="flex-1 px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                />
+                <button type="button" onClick={addCategoria}
+                  className="px-3 py-2 text-xs bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors">
+                  Adicionar
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {categorias.map((c) => (
+                  <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white border border-gray-200 rounded-full">
+                    {c}
+                    <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 transition-colors leading-none">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Section: Valores + Foto (bento row) */}
+        <div className="grid grid-cols-3 gap-6">
+
+          {/* Valores e Quantidade (2/3) */}
+          <div className="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+            <h3 className="text-base font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
+              <Receipt size={18} />
+              Valores e Quantidade
+            </h3>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Quantidade</label>
                 <input
                   type="number"
-                  value={form.meses}
-                  onChange={(e) => setForm((prev) => ({ ...prev, meses: Math.min(24, Math.max(2, parseInt(e.target.value) || 2)) }))}
-                  min={2} max={24}
-                  className="w-32 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  value={form.quantidade}
+                  onChange={(e) => set("quantidade", e.target.value)}
+                  placeholder="0"
+                  min="0"
+                  step="0.01"
+                  className={inputCls + " text-center font-bold"}
                 />
-                <p className="text-xs text-gray-400 mt-1">Serão criadas {form.meses} transações (hoje + próximos {form.meses - 1} meses)</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Valor Unitário</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
+                  <input
+                    type="number"
+                    value={form.valor_unitario}
+                    onChange={(e) => set("valor_unitario", e.target.value)}
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                    className={inputCls + " pl-9 font-bold"}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Valor Total *</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600 text-xs font-extrabold">R$</span>
+                  <input
+                    type="number"
+                    value={form.valor_total}
+                    onChange={(e) => set("valor_total", e.target.value)}
+                    placeholder="0,00"
+                    min="0"
+                    step="0.01"
+                    required
+                    className="w-full pl-9 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-extrabold text-green-700 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Status (venda only) — toggle buttons */}
+            {form.tipo === "venda" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Status do Pagamento</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => set("statusPagamento", "pago")}
+                      className={`flex-1 py-3 px-2 rounded-xl text-xs font-bold transition-all ${
+                        form.statusPagamento === "pago"
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      Recebido
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set("statusPagamento", "pendente")}
+                      className={`flex-1 py-3 px-2 rounded-xl text-xs font-bold transition-all ${
+                        form.statusPagamento === "pendente"
+                          ? "bg-amber-500 text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      Pendente
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Forma de Pagamento</label>
+                  <select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)} className={selectCls}>
+                    <option value="">Não informado</option>
+                    {PAGAMENTOS.map((p) => (
+                      <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Forma de pagamento (non-venda types) */}
+            {form.tipo !== "venda" && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Forma de Pagamento</label>
+                <select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)} className={selectCls}>
+                  <option value="">Não informado</option>
+                  {PAGAMENTOS.map((p) => (
+                    <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Recorrência (despesa/saida) */}
+            {usaFornecedor && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="recorrente"
+                    checked={form.recorrente}
+                    onChange={(e) => setForm((prev) => ({ ...prev, recorrente: e.target.checked }))}
+                    className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <label htmlFor="recorrente" className="text-sm font-medium text-gray-600">
+                    Despesa recorrente (repete mensalmente)
+                  </label>
+                </div>
+                {form.recorrente && (
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1 block mb-1">Repetir por quantos meses?</label>
+                    <input
+                      type="number"
+                      value={form.meses}
+                      onChange={(e) => setForm((prev) => ({ ...prev, meses: Math.min(24, Math.max(2, parseInt(e.target.value) || 2)) }))}
+                      min={2}
+                      max={24}
+                      className={inputCls + " w-28"}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Serão criadas {form.meses} vendas (hoje + próximos {form.meses - 1} meses)
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
 
-        {/* Pagamento + Data */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Forma de Pagamento</label>
-            <select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-              <option value="">Não informado</option>
-              {PAGAMENTOS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
-            </select>
+          {/* Foto do produto (1/3) */}
+          <div
+            className="bg-white dark:bg-gray-900 p-6 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center"
+            style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
+          >
+            {fotoPreview ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={fotoPreview}
+                  alt="Foto do produto"
+                  className="w-28 h-28 object-cover rounded-2xl border border-gray-200"
+                />
+                {uploadingFoto && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {!uploadingFoto && (
+                  <button
+                    type="button"
+                    onClick={removeFoto}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFoto}
+                className="flex flex-col items-center gap-4 w-full group"
+              >
+                <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 group-hover:bg-green-100 dark:group-hover:bg-green-900/40 transition-colors">
+                  <Camera size={28} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-700">Foto do Produto</p>
+                  <p className="text-xs text-gray-400 mt-1">Clique para selecionar</p>
+                </div>
+                <span className="text-xs text-green-600 font-bold underline">Selecionar arquivo</span>
+              </button>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoUpload} className="hidden" />
+            {!fotoPreview && (
+              <p className="text-[10px] text-gray-300">JPG, PNG, WEBP (máx. 5MB)</p>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data do Pagamento *</label>
-            <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+        </div>
+
+        {/* Section: Detalhes Adicionais */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Data da Venda *</label>
+                <input
+                  type="date"
+                  value={form.data}
+                  onChange={(e) => set("data", e.target.value)}
+                  required
+                  className={inputCls}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Comprovante (URL)</label>
+                <div className="relative">
+                  <Link2 size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    value={form.comprovanteUrl}
+                    onChange={(e) => setForm({ ...form, comprovanteUrl: e.target.value })}
+                    placeholder="https://..."
+                    className={inputCls + " pl-10"}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Observações</label>
+              <textarea
+                value={form.observacoes}
+                onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                rows={5}
+                placeholder="Algum detalhe importante sobre essa venda?"
+                className={inputCls + " resize-none h-full min-h-[120px]"}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Observações */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
-          <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} rows={2}
-            placeholder="Notas adicionais..."
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+        {/* Action footer */}
+        <div className="flex items-center justify-end gap-6 pt-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-gray-500 font-bold hover:text-red-500 transition-colors px-6"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={loading || uploadingFoto}
+            className="bg-green-600 hover:bg-green-700 text-white py-4 px-12 rounded-full font-extrabold text-base flex items-center gap-3 shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+          >
+            {loading ? "Salvando..." : uploadingFoto ? "Aguardando upload..." : "Salvar Venda"}
+            {!loading && !uploadingFoto && <CheckCircle size={20} />}
+          </button>
         </div>
 
-        {/* Comprovante */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprovante (URL)</label>
-          <input type="url" value={form.comprovanteUrl} onChange={(e) => setForm({ ...form, comprovanteUrl: e.target.value })}
-            placeholder="https://..."
-            className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          <p className="text-xs text-gray-400 mt-1">Cole a URL do comprovante (imagem, PDF, etc.)</p>
-        </div>
-
-        <button type="submit" disabled={loading || uploadingFoto}
-          className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-50">
-          {loading ? "Salvando..." : uploadingFoto ? "Aguardando upload..." : "Salvar Transação"}
-        </button>
       </form>
     </div>
   );

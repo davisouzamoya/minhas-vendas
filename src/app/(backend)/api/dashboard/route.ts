@@ -148,9 +148,9 @@ export async function GET() {
     };
   }).sort((a, b) => b.diasSemComprar - a.diasSemComprar);
 
-  type PerfilOnboarding = { nomeNegocio: string | null; onboardingCompleto: boolean };
+  type PerfilOnboarding = { nomeNegocio: string | null; onboardingCompleto: boolean; metaMensal: number | null };
   const [perfilOnboarding] = await prisma.$queryRaw<PerfilOnboarding[]>`
-    SELECT "nomeNegocio", "onboardingCompleto" FROM "Perfil" WHERE "userId" = ${userId}
+    SELECT "nomeNegocio", "onboardingCompleto", "metaMensal" FROM "Perfil" WHERE "userId" = ${userId}
   `;
 
   const onboarding = {
@@ -162,5 +162,8 @@ export async function GET() {
     },
   };
 
-  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes, clientesChurn, onboarding });
+  const metaMensal = perfilOnboarding?.metaMensal ?? null;
+  const nomeNegocio = perfilOnboarding?.nomeNegocio ?? null;
+
+  return NextResponse.json({ summary, saldo, recentes: transactions, chartData, comparativo, aniversariantes, clientesChurn, onboarding, metaMensal, nomeNegocio });
 }

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  PlusCircle, Search, Trash2, ReceiptText, Pencil, Download, Copy,
+  Trash2, ReceiptText, Pencil, Download, Copy,
   CheckCircle2, Paperclip, Repeat, Square, CheckSquare, ArrowUpDown,
-  ArrowUp, ArrowDown, Layers, AlignJustify,
+  ArrowUp, ArrowDown, AlignJustify,
+  ShoppingCart, TrendingUp, TrendingDown, Receipt, Filter,
 } from "lucide-react";
 
 // --- Interfaces ---
@@ -52,6 +54,20 @@ const tipoLabel: Record<string, string> = {
   venda: "Venda", despesa: "Despesa", entrada: "Entrada", saida: "Saída",
 };
 
+const tipoIcon: Record<string, React.ReactNode> = {
+  venda:   <ShoppingCart size={18} />,
+  despesa: <Receipt size={18} />,
+  entrada: <TrendingUp size={18} />,
+  saida:   <TrendingDown size={18} />,
+};
+
+const tipoIconBg: Record<string, string> = {
+  venda:   "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400",
+  despesa: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400",
+  entrada: "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
+  saida:   "bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400",
+};
+
 // --- Helpers ---
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -66,14 +82,14 @@ function toInputDate(dateStr: string) {
 // --- Empty State ---
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-      <ReceiptText size={48} className="text-gray-300 dark:text-gray-600" />
-      <p className="text-gray-500 dark:text-gray-400 font-medium">
-        {hasFilters ? "Nenhuma transação encontrada para os filtros aplicados." : "Nenhuma transação ainda."}
+    <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+      <ReceiptText size={48} className="text-gray-200 dark:text-gray-700" />
+      <p className="text-gray-400 dark:text-gray-500 font-medium text-sm">
+        {hasFilters ? "Nenhuma venda encontrada para os filtros aplicados." : "Nenhuma venda ainda."}
       </p>
       {!hasFilters && (
-        <Link href="/nova" className="mt-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-          Adicionar primeira transação
+        <Link href="/nova" className="mt-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors">
+          Registrar primeira venda
         </Link>
       )}
     </div>
@@ -93,22 +109,24 @@ function ToastUndo({ message, onUndo, onDismiss }: { message: string; onUndo: ()
 
 // --- Sort Icon ---
 function SortIcon({ col, sortBy, sortDir }: { col: string; sortBy: string; sortDir: string }) {
-  if (sortBy !== col) return <ArrowUpDown size={12} className="ml-1 text-gray-300 dark:text-gray-600" />;
+  if (sortBy !== col) return <ArrowUpDown size={11} className="ml-1 text-gray-300 dark:text-gray-600" />;
   return sortDir === "asc"
-    ? <ArrowUp size={12} className="ml-1 text-green-500" />
-    : <ArrowDown size={12} className="ml-1 text-green-500" />;
+    ? <ArrowUp size={11} className="ml-1 text-green-500" />
+    : <ArrowDown size={11} className="ml-1 text-green-500" />;
 }
 
 // --- Status Badge ---
 function StatusBadge({ status, onClick }: { status: string | null; onClick?: () => void }) {
-  if (!status) return <span className="text-gray-400 text-xs">—</span>;
-  const cls = status === "pago"
-    ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-    : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400";
+  if (!status) return <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>;
+  const isPago = status === "pago";
   return (
-    <button onClick={onClick} title={onClick ? "Clique para alternar" : undefined}
-      className={`text-xs px-2 py-0.5 rounded-full font-medium transition-opacity ${cls} ${onClick ? "hover:opacity-70" : "cursor-default"}`}>
-      {status === "pago" ? "Pago" : "Pendente"}
+    <button
+      onClick={onClick}
+      title={onClick ? "Clique para alternar" : undefined}
+      className={`flex items-center gap-1.5 text-xs font-bold transition-opacity ${onClick ? "hover:opacity-70" : "cursor-default"} ${isPago ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isPago ? "bg-green-500" : "bg-amber-500 animate-pulse"}`} />
+      {isPago ? "Pago" : "Pendente"}
     </button>
   );
 }
@@ -175,11 +193,13 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
     onSave();
   }
 
+  const inputCls = "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Editar transação</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Editar venda</h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none">×</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -193,14 +213,12 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
               </p>
             </div>
           )}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
             <p className={`inline-flex px-3 py-1.5 rounded-lg text-sm font-medium border ${tipoCor[form.tipo] ?? "border-gray-200 text-gray-600"}`}>
               {form.tipo === "saida" ? "Saída" : form.tipo.charAt(0).toUpperCase() + form.tipo.slice(1)}
             </p>
           </div>
-
           {form.tipo === "venda" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status do Pagamento</label>
@@ -212,12 +230,10 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
               </select>
             </div>
           )}
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto</label>
-              <input type="text" value={form.produto} onChange={(e) => set("produto", e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="text" value={form.produto} onChange={(e) => set("produto", e.target.value)} className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoria</label>
@@ -228,25 +244,20 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
               </select>
             </div>
           </div>
-
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantidade</label>
-              <input type="number" value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} min="0" step="0.01"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="number" value={form.quantidade} onChange={(e) => set("quantidade", e.target.value)} min="0" step="0.01" className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vlr Unitário</label>
-              <input type="number" value={form.valor_unitario} onChange={(e) => set("valor_unitario", e.target.value)} min="0" step="0.01"
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="number" value={form.valor_unitario} onChange={(e) => set("valor_unitario", e.target.value)} min="0" step="0.01" className={inputCls} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vlr Total *</label>
-              <input type="number" value={form.valor_total} onChange={(e) => set("valor_total", e.target.value)} min="0" step="0.01" required
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="number" value={form.valor_total} onChange={(e) => set("valor_total", e.target.value)} min="0" step="0.01" required className={inputCls + " font-semibold"} />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pagamento</label>
@@ -258,39 +269,32 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data *</label>
-              <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required className={inputCls} />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
             <textarea value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} rows={2}
-              placeholder="Notas adicionais..."
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" />
+              placeholder="Notas adicionais..." className={inputCls + " resize-none"} />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprovante (URL)</label>
             <input type="url" value={form.comprovanteUrl} onChange={(e) => set("comprovanteUrl", e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              placeholder="https://..." className={inputCls} />
           </div>
-
           {transaction.fotoUrl && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto do Produto</label>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={transaction.fotoUrl} alt="Foto do produto" className="w-28 h-28 object-cover rounded-xl border border-gray-200 dark:border-gray-700" />
-              <p className="text-xs text-gray-400 mt-1">Para alterar a foto, crie uma nova transação.</p>
+              <p className="text-xs text-gray-400 mt-1">Para alterar a foto, crie uma nova venda.</p>
             </div>
           )}
-
           <div className="flex gap-3 justify-end pt-2">
             <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               Cancelar
             </button>
-            <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50">
+            <button type="submit" disabled={saving} className="px-4 py-2 text-sm rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors disabled:opacity-50">
               {saving ? "Salvando..." : "Salvar"}
             </button>
           </div>
@@ -310,7 +314,7 @@ function DuplicateModal({ transaction, onConfirm, onCancel }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 w-full max-w-xs shadow-xl p-5">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Duplicar transação</h2>
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Duplicar venda</h2>
         <p className="text-xs text-gray-400 mb-4 truncate">{transaction.descricao}</p>
         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Data</label>
         <input type="date" value={data} onChange={(e) => setData(e.target.value)}
@@ -319,7 +323,7 @@ function DuplicateModal({ transaction, onConfirm, onCancel }: {
           <button onClick={onCancel} className="px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             Cancelar
           </button>
-          <button onClick={() => onConfirm(data)} className="px-3 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors">
+          <button onClick={() => onConfirm(data)} className="px-3 py-2 text-sm rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors">
             Duplicar
           </button>
         </div>
@@ -341,21 +345,27 @@ function Pagination({ page, totalPages, total, onChange }: { page: number; total
     pages.push(totalPages);
   }
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800">
+    <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800">
       <p className="text-xs text-gray-400">{total} registro{total !== 1 ? "s" : ""}</p>
-      <div className="flex items-center gap-1">
-        <button onClick={() => onChange(page - 1)} disabled={page === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">‹</button>
+      <div className="flex items-center gap-1.5">
+        <button onClick={() => onChange(page - 1)} disabled={page === 1}
+          className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 disabled:opacity-30 transition-colors text-sm">
+          ‹
+        </button>
         {pages.map((p, i) =>
           p === "..." ? (
-            <span key={`e-${i}`} className="px-2 py-1 text-xs text-gray-400">...</span>
+            <span key={`e-${i}`} className="w-9 h-9 flex items-center justify-center text-xs text-gray-400">…</span>
           ) : (
             <button key={p} onClick={() => onChange(p as number)}
-              className={`px-3 py-1 text-xs rounded-lg border transition-colors ${p === page ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"}`}>
+              className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-bold transition-colors ${p === page ? "bg-green-600 text-white" : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
               {p}
             </button>
           )
         )}
-        <button onClick={() => onChange(page + 1)} disabled={page === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">›</button>
+        <button onClick={() => onChange(page + 1)} disabled={page === totalPages}
+          className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 disabled:opacity-30 transition-colors text-sm">
+          ›
+        </button>
       </div>
     </div>
   );
@@ -378,13 +388,14 @@ function exportToCsv(transactions: Transaction[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `transacoes_${new Date().toISOString().split("T")[0]}.csv`;
+  a.download = `vendas_${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 // --- Main Page ---
 export default function Transacoes() {
+  const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal] = useState(0);
   const [totais, setTotais] = useState<Totais | null>(null);
@@ -393,6 +404,11 @@ export default function Transacoes() {
   const [categoria, setCategoria] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [busca, setBusca] = useState("");
+
+  // Sincroniza busca com ?q= do header
+  useEffect(() => {
+    setBusca(searchParams.get("q") ?? "");
+  }, [searchParams]);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [clienteId, setClienteId] = useState("");
@@ -409,6 +425,7 @@ export default function Transacoes() {
   const [compacto, setCompacto] = useState(false);
   const [periodoRapido, setPeriodoRapido] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [toast, setToast] = useState<{ message: string; onUndo: () => void } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limit = 15;
@@ -473,7 +490,7 @@ export default function Transacoes() {
   function handleDeleteWithUndo(id: number) {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     setTotal((prev) => prev - 1);
-    showToastWithUndo("Transação excluída.", load);
+    showToastWithUndo("Venda excluída.", load);
     undoTimerRef.current = setTimeout(async () => {
       await fetch(`/api/transactions/${id}`, { method: "DELETE" });
       setToast(null);
@@ -485,7 +502,7 @@ export default function Transacoes() {
     setTransactions((prev) => prev.filter((t) => !selected.has(t.id)));
     setTotal((prev) => prev - ids.length);
     setSelected(new Set());
-    showToastWithUndo(`${ids.length} transaç${ids.length > 1 ? "ões excluídas" : "ão excluída"}.`, load);
+    showToastWithUndo(`${ids.length} venda${ids.length > 1 ? "s excluídas" : " excluída"}.`, load);
     undoTimerRef.current = setTimeout(async () => {
       await fetch("/api/transactions/bulk", {
         method: "DELETE",
@@ -586,7 +603,6 @@ export default function Transacoes() {
     setPeriodoRapido(p); setPage(1);
   }
 
-  // Group rows by day or month
   type Group = { key: string; items: Transaction[] };
   function groupRows(rows: Transaction[]): Group[] {
     const groups: Group[] = [];
@@ -603,61 +619,92 @@ export default function Transacoes() {
 
   function renderRow(t: Transaction) {
     const isSelected = selected.has(t.id);
-    const py = compacto ? "py-1" : "py-3";
+    const py = compacto ? "py-3" : "py-5";
     return (
-      <tr key={t.id} onClick={() => setEditTransaction(t)} className={`cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : ""}`}>
-        <td className={`px-4 ${py} w-8`}>
-          <button onClick={(e) => { e.stopPropagation(); toggleSelect(t.id); }} className="text-gray-400 hover:text-green-500 transition-colors">
-            {isSelected ? <CheckSquare size={16} className="text-green-500" /> : <Square size={16} />}
+      <tr
+        key={t.id}
+        onClick={() => setEditTransaction(t)}
+        className={`group cursor-pointer transition-colors ${isSelected ? "bg-green-50 dark:bg-green-900/10" : "hover:bg-gray-50 dark:hover:bg-gray-800/40"}`}
+      >
+        {/* Checkbox */}
+        <td className={`px-5 ${py} w-8`}>
+          <button onClick={(e) => { e.stopPropagation(); toggleSelect(t.id); }} className="text-gray-300 hover:text-green-500 transition-colors">
+            {isSelected ? <CheckSquare size={15} className="text-green-500" /> : <Square size={15} />}
           </button>
         </td>
-        <td className={`px-4 ${py} max-w-xs`}>
-          <p className="font-medium text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
-            {t.descricao}
-            {t.recorrente && <span title="Recorrente"><Repeat size={12} className="text-blue-400 shrink-0" /></span>}
-            {t.comprovanteUrl && (
-              <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" title="Ver comprovante" onClick={(e) => e.stopPropagation()}>
-                <Paperclip size={12} className="text-gray-400 hover:text-green-500 shrink-0" />
-              </a>
-            )}
-          </p>
-          {!compacto && (
-            <>
-              <div className="flex items-start gap-2">
-                {t.fotoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0 mt-0.5" />
+
+        {/* Descrição com ícone */}
+        <td className={`px-5 ${py} max-w-xs`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${tipoIconBg[t.tipo]}`}>
+              {tipoIcon[t.tipo]}
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-gray-800 dark:text-gray-100 truncate flex items-center gap-1.5">
+                {t.descricao}
+                {t.recorrente && <Repeat size={11} className="text-blue-400 shrink-0" />}
+                {t.comprovanteUrl && (
+                  <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                    <Paperclip size={11} className="text-gray-400 hover:text-green-500 shrink-0" />
+                  </a>
                 )}
-                <div>
-                  {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-                  {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
+              </p>
+              {!compacto && (
+                <div className="flex items-center gap-2 mt-0.5">
+                  {t.fotoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-7 h-7 object-cover rounded-md border border-gray-200 dark:border-gray-700 shrink-0" />
+                  )}
+                  <p className="text-[11px] text-gray-400 truncate">
+                    {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000
+                      ? `Editado em ${new Date(t.updatedAt).toLocaleDateString("pt-BR")}`
+                      : t.produto ?? t.observacoes ?? ""}
+                  </p>
                 </div>
-              </div>
-              {t.updatedAt && t.createdAt && new Date(t.updatedAt).getTime() - new Date(t.createdAt).getTime() > 10000 && (
-                <p className="text-xs text-gray-400 italic">Editado {new Date(t.updatedAt).toLocaleDateString("pt-BR")}</p>
               )}
-            </>
-          )}
+            </div>
+          </div>
         </td>
-        <td className={`px-4 ${py}`}>
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
+
+        {/* Tipo */}
+        <td className={`px-5 ${py}`}>
+          <span className={`px-2.5 py-1 text-[10px] font-extrabold rounded-full uppercase tracking-wide ${tipoCor[t.tipo]}`}>
+            {tipoLabel[t.tipo]}
+          </span>
         </td>
-        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400 capitalize`}>{t.categoria ?? "—"}</td>
-        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400 capitalize`}>{t.formaPagamento ?? "—"}</td>
-        <td className={`px-4 ${py}`} onClick={(e) => e.stopPropagation()}>
+
+        {/* Categoria */}
+        <td className={`px-5 ${py} text-sm text-gray-500 dark:text-gray-400 capitalize`}>{t.categoria ?? "—"}</td>
+
+        {/* Pagamento */}
+        <td className={`px-5 ${py} text-sm text-gray-500 dark:text-gray-400 capitalize`}>{t.formaPagamento ?? "—"}</td>
+
+        {/* Status */}
+        <td className={`px-5 ${py}`} onClick={(e) => e.stopPropagation()}>
           <StatusBadge status={t.statusPagamento} onClick={t.statusPagamento ? () => handleTogglePago(t) : undefined} />
         </td>
-        <td className={`px-4 ${py} text-gray-600 dark:text-gray-400`}>
-          <p>{formatDate(t.data)}</p>
-          {!compacto && t.cliente && <p className="text-xs text-gray-400">{t.cliente.nome}</p>}
-          {!compacto && t.fornecedor && <p className="text-xs text-gray-400">{t.fornecedor.nome}</p>}
+
+        {/* Data + cliente/fornecedor */}
+        <td className={`px-5 ${py}`}>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{formatDate(t.data)}</p>
+          {!compacto && (t.cliente || t.fornecedor) && (
+            <p className="text-[11px] text-gray-400">{t.cliente?.nome ?? t.fornecedor?.nome}</p>
+          )}
         </td>
-        <td className={`px-4 ${py} text-right font-semibold text-gray-800 dark:text-gray-100`}>{formatCurrency(t.valorTotal)}</td>
-        <td className={`px-4 ${py}`}>
-          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setEditTransaction(t)} className="p-1.5 text-gray-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Pencil size={14} /></button>
-            <button onClick={() => setDuplicateTarget(t)} className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" title="Duplicar"><Copy size={14} /></button>
-            <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 size={14} /></button>
+
+        {/* Valor */}
+        <td className={`px-5 ${py} text-right`}>
+          <span className={`font-extrabold text-sm ${t.tipo === "despesa" || t.tipo === "saida" ? "text-red-600 dark:text-red-400" : "text-gray-800 dark:text-gray-100"}`}>
+            {formatCurrency(t.valorTotal)}
+          </span>
+        </td>
+
+        {/* Ações (visíveis no hover) */}
+        <td className={`px-5 ${py}`}>
+          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setEditTransaction(t)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-green-600 dark:text-green-400 transition-colors"><Pencil size={14} /></button>
+            <button onClick={() => setDuplicateTarget(t)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-blue-500 transition-colors" title="Duplicar"><Copy size={14} /></button>
+            <button onClick={() => handleDeleteWithUndo(t.id)} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-500 transition-colors"><Trash2 size={14} /></button>
           </div>
         </td>
       </tr>
@@ -665,7 +712,7 @@ export default function Transacoes() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {editTransaction && <EditModal transaction={editTransaction} categorias={categorias} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
       {duplicateTarget && <DuplicateModal transaction={duplicateTarget} onConfirm={(data) => confirmDuplicate(duplicateTarget, data)} onCancel={() => setDuplicateTarget(null)} />}
       {toast && <ToastUndo message={toast.message} onUndo={toast.onUndo} onDismiss={dismissToast} />}
@@ -684,186 +731,185 @@ export default function Transacoes() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Transações</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setCompacto((v) => !v)}
-            title={compacto ? "Modo normal" : "Modo compacto"}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${compacto ? "border-green-500 text-green-600 dark:text-green-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-          >
-            <AlignJustify size={15} />
-          </button>
-          <button
-            onClick={() => setAgrupar((v) => v === "" ? "dia" : v === "dia" ? "mes" : "")}
-            title={agrupar === "" ? "Agrupar por dia" : agrupar === "dia" ? "Agrupar por mês" : "Sem agrupamento"}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${agrupar ? "border-green-500 text-green-600 dark:text-green-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
-          >
-            <Layers size={15} />
-            <span className="hidden sm:inline">{agrupar === "dia" ? "Por dia" : agrupar === "mes" ? "Por mês" : "Agrupar"}</span>
-          </button>
-          <button onClick={handleExport} disabled={exporting}
-            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
-            <Download size={15} />
-            <span className="hidden sm:inline">{exporting ? "Exportando..." : "CSV"}</span>
-          </button>
-          <Link href="/nova" className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-            <PlusCircle size={16} /> Nova
-          </Link>
+      {/* Page header + Summary cards */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Vendas</h1>
+          <p className="text-base text-gray-400 mt-1.5">Gerencie seu fluxo de caixa com precisão.</p>
         </div>
+
+        {totais && (
+          <div className="grid grid-cols-3 gap-3 md:w-auto w-full">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-1.5 min-w-[150px]" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[10px] uppercase font-extrabold text-green-600 dark:text-green-400 tracking-widest">Entradas</p>
+              <p className="text-xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(totais.vendas + totais.entradas)}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-1.5 min-w-[150px]" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[10px] uppercase font-extrabold text-red-500 tracking-widest">Saídas</p>
+              <p className="text-xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(totais.despesas)}</p>
+            </div>
+            <div className={`p-5 flex flex-col gap-1.5 min-w-[150px] border ${totais.saldo >= 0 ? "bg-green-600 border-green-600" : "bg-red-500 border-red-500"}`} style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[10px] uppercase font-extrabold text-white/80 tracking-widest">Saldo</p>
+              <p className="text-xl font-extrabold text-white">{formatCurrency(totais.saldo)}</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Cards de totais */}
-      {totais && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">Vendas</p>
-            <p className="text-base font-bold text-green-600 dark:text-green-400">{formatCurrency(totais.vendas)}</p>
+      {/* Filter bar */}
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Period shortcuts */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {(["hoje", "semana", "mes", "ano"] as const).map((p) => {
+              const labels = { hoje: "Hoje", semana: "Semana", mes: "Mês", ano: "Ano" };
+              return (
+                <button key={p} onClick={() => { if (periodoRapido === p) { setPeriodoRapido(""); setDataInicio(""); setDataFim(""); setPage(1); } else { aplicarPeriodo(p); } }}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors ${periodoRapido === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:border-green-400"}`}>
+                  {labels[p]}
+                </button>
+              );
+            })}
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">Entradas</p>
-            <p className="text-base font-bold text-blue-600 dark:text-blue-400">{formatCurrency(totais.entradas)}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
-            <p className="text-xs text-gray-400 mb-1">Despesas</p>
-            <p className="text-base font-bold text-red-600 dark:text-red-400">{formatCurrency(totais.despesas)}</p>
-          </div>
-          <div className={`rounded-xl border p-4 ${totais.saldo >= 0 ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/40" : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/40"}`}>
-            <p className="text-xs text-gray-400 mb-1">Saldo</p>
-            <p className={`text-base font-bold ${totais.saldo >= 0 ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatCurrency(totais.saldo)}</p>
-          </div>
-        </div>
-      )}
 
-      {/* Filtros */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 mb-4 space-y-3">
-        <div className="flex gap-2 flex-wrap">
-          {(["hoje", "semana", "mes", "ano"] as const).map((p) => {
-            const labels = { hoje: "Hoje", semana: "Esta semana", mes: "Este mês", ano: "Este ano" };
-            return (
-              <button key={p} onClick={() => { if (periodoRapido === p) { setPeriodoRapido(""); setDataInicio(""); setDataFim(""); setPage(1); } else { aplicarPeriodo(p); } }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${periodoRapido === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-green-400 hover:text-green-600 dark:hover:text-green-400"}`}>
-                {labels[p]}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <select value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(1); }}
-            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-            <option value="">Todos os tipos</option>
-            <option value="venda">Venda</option>
-            <option value="despesa">Despesa</option>
-            <option value="entrada">Entrada</option>
-            <option value="saida">Saída</option>
-          </select>
-          <select value={categoria} onChange={(e) => { setCategoria(e.target.value); setPage(1); }}
-            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-            <option value="">Todas as categorias</option>
-            {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-          </select>
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-            className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-            <option value="">Todos os status</option>
-            <option value="pago">Pago</option>
-            <option value="pendente">Pendente</option>
-          </select>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div className="w-full sm:flex-1">
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
-            <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          <div className="w-full sm:flex-1">
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
-            <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-          </div>
-          {clientes.length > 0 && (
-            <div className="w-full sm:flex-1">
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cliente</label>
-              <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setPage(1); }}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Todos</option>
-                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </div>
-          )}
-          {fornecedores.length > 0 && (
-            <div className="w-full sm:flex-1">
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fornecedor</label>
-              <select value={fornecedorId} onChange={(e) => { setFornecedorId(e.target.value); setPage(1); }}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Todos</option>
-                {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-              </select>
-            </div>
-          )}
-          {hasFilters && (
-            <button onClick={resetFilters} className="w-full sm:w-auto px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
-              Limpar filtros
+          <button onClick={() => setShowFilters((v) => !v)}
+            className={`p-2 rounded-xl border transition-colors ${showFilters ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}
+            title="Mais filtros">
+            <Filter size={15} />
+          </button>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button onClick={() => setCompacto((v) => !v)} title={compacto ? "Modo normal" : "Modo compacto"}
+              className={`p-2 rounded-xl border transition-colors ${compacto ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}>
+              <AlignJustify size={15} />
             </button>
-          )}
+            <select
+              value={agrupar}
+              onChange={(e) => setAgrupar(e.target.value as "" | "dia" | "mes")}
+              className={`px-3 py-2 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 ${agrupar ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"}`}
+            >
+              <option value="">Sem agrupamento</option>
+              <option value="dia">Agrupar por dia</option>
+              <option value="mes">Agrupar por mês</option>
+            </select>
+            <button onClick={handleExport} disabled={exporting}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:border-green-400 transition-colors disabled:opacity-50">
+              <Download size={15} />
+              {exporting ? "Exportando..." : "Exportar CSV"}
+            </button>
+          </div>
         </div>
+
+        {/* Filtros expandidos */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-200 dark:border-gray-700">
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</label>
+              <select value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(1); }}
+                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todos os tipos</option>
+                <option value="venda">Venda</option>
+                <option value="despesa">Despesa</option>
+                <option value="entrada">Entrada</option>
+                <option value="saida">Saída</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
+              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todos status</option>
+                <option value="pago">Pago</option>
+                <option value="pendente">Pendente</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
+                <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
+                <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Categoria</label>
+              <select value={categoria} onChange={(e) => { setCategoria(e.target.value); setPage(1); }}
+                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                <option value="">Todas as categorias</option>
+                {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+              </select>
+            </div>
+            {clientes.length > 0 && (
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cliente</label>
+                <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setPage(1); }}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Todos</option>
+                  {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+            )}
+            {fornecedores.length > 0 && (
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fornecedor</label>
+                <select value={fornecedorId} onChange={(e) => { setFornecedorId(e.target.value); setPage(1); }}
+                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  <option value="">Todos</option>
+                  {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                </select>
+              </div>
+            )}
+            {hasFilters && (
+              <div className="flex items-end">
+                <button onClick={resetFilters} className="px-3 py-2 text-xs text-gray-500 hover:text-red-500 transition-colors">
+                  Limpar filtros
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mobile: cards */}
       <div className="flex flex-col gap-3 md:hidden">
         {filtered.length === 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
             <EmptyState hasFilters={hasFilters} />
           </div>
         ) : (
           filtered.map((t) => (
             <div key={t.id} onClick={() => toggleSelect(t.id)}
-              className={`bg-white dark:bg-gray-900 rounded-xl border p-4 cursor-pointer transition-colors ${selected.has(t.id) ? "border-green-500 dark:border-green-600" : "border-gray-200 dark:border-gray-800"}`}>
+              className={`bg-white dark:bg-gray-900 rounded-2xl border p-4 cursor-pointer transition-colors ${selected.has(t.id) ? "border-green-500 dark:border-green-600" : "border-gray-200 dark:border-gray-800"}`}>
               <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{t.descricao}</p>
-                    {t.recorrente && <Repeat size={12} className="text-blue-400 shrink-0" />}
-                    {t.comprovanteUrl && (
-                      <a href={t.comprovanteUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                        <Paperclip size={12} className="text-gray-400 hover:text-green-500 shrink-0" />
-                      </a>
-                    )}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tipoIconBg[t.tipo]}`}>
+                    {tipoIcon[t.tipo]}
                   </div>
-                  <div className="flex items-start gap-2 mt-0.5">
-                    {t.fotoUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.fotoUrl} alt={t.produto ?? "foto"} className="w-10 h-10 object-cover rounded-lg border border-gray-200 dark:border-gray-700 shrink-0" />
-                    )}
-                    <div>
-                      {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
-                      {t.observacoes && <p className="text-xs text-gray-400 italic truncate">{t.observacoes}</p>}
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{t.descricao}</p>
+                    {t.produto && <p className="text-xs text-gray-400">{t.produto}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
                   <button onClick={() => setEditTransaction(t)} className="p-1 text-gray-400 hover:text-green-500 transition-colors"><Pencil size={14} /></button>
                   <button onClick={() => setDuplicateTarget(t)} className="p-1 text-gray-400 hover:text-blue-500 transition-colors"><Copy size={14} /></button>
                   <button onClick={() => handleDeleteWithUndo(t.id)} className="p-1 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-gray-400">
-                  {formatDate(t.data)}
-                  {t.categoria && ` • ${t.categoria}`}
-                  {t.formaPagamento && ` • ${t.formaPagamento}`}
-                  {t.cliente && ` • ${t.cliente.nome}`}
-                  {t.fornecedor && ` • ${t.fornecedor.nome}`}
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase ${tipoCor[t.tipo]}`}>{tipoLabel[t.tipo]}</span>
+                  <p className="text-xs text-gray-400">{formatDate(t.data)}{t.categoria && ` • ${t.categoria}`}</p>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {t.statusPagamento && <StatusBadge status={t.statusPagamento} onClick={() => handleTogglePago(t)} />}
-                  <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{formatCurrency(t.valorTotal)}</p>
+                  <p className={`text-sm font-extrabold ${t.tipo === "despesa" || t.tipo === "saida" ? "text-red-600" : "text-gray-800 dark:text-gray-100"}`}>
+                    {formatCurrency(t.valorTotal)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -871,66 +917,68 @@ export default function Transacoes() {
         )}
       </div>
 
-      {/* Desktop: tabela */}
-      <div className="hidden md:block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        {filtered.length === 0 ? (
-          <EmptyState hasFilters={hasFilters} />
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="px-4 py-3 w-8">
-                  <button onClick={toggleSelectAll} className="text-gray-400 hover:text-green-500 transition-colors">
-                    {selected.size === filtered.length && filtered.length > 0
-                      ? <CheckSquare size={16} className="text-green-500" />
-                      : <Square size={16} />}
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <button onClick={() => toggleSort("descricao")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
-                    Descrição <SortIcon col="descricao" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <button onClick={() => toggleSort("tipo")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
-                    Tipo <SortIcon col="tipo" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoria</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pagamento</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <button onClick={() => toggleSort("data")} className="flex items-center hover:text-gray-700 dark:hover:text-gray-200">
-                    Data <SortIcon col="data" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <button onClick={() => toggleSort("valorTotal")} className="flex items-center ml-auto hover:text-gray-700 dark:hover:text-gray-200">
-                    Valor <SortIcon col="valorTotal" sortBy={sortBy} sortDir={sortDir} />
-                  </button>
-                </th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {agrupar ? (
-                groupRows(filtered).flatMap(({ key, items }) => [
-                  <tr key={`group-${key}`} className="bg-gray-50 dark:bg-gray-800/60">
-                    <td colSpan={9} className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-100 dark:border-gray-800 capitalize">
-                      {key}
-                    </td>
-                  </tr>,
-                  ...items.map(renderRow),
-                ])
-              ) : (
-                filtered.map(renderRow)
-              )}
-            </tbody>
-          </table>
-        )}
-        {totalPages > 1 && filtered.length > 0 && (
-          <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
-        )}
+      {/* Desktop: ledger table */}
+      <div className="hidden md:block rounded-[2rem] bg-gray-50 dark:bg-gray-800/30 p-1">
+        <div className="bg-white dark:bg-gray-900 rounded-[1.8rem] overflow-hidden border border-gray-100 dark:border-gray-800">
+          {filtered.length === 0 ? (
+            <EmptyState hasFilters={hasFilters} />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50/70 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                  <th className="px-5 py-4 w-8">
+                    <button onClick={toggleSelectAll} className="text-gray-300 hover:text-green-500 transition-colors">
+                      {selected.size === filtered.length && filtered.length > 0
+                        ? <CheckSquare size={15} className="text-green-500" />
+                        : <Square size={15} />}
+                    </button>
+                  </th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                    <button onClick={() => toggleSort("descricao")} className="flex items-center hover:text-gray-600 dark:hover:text-gray-200">
+                      Descrição <SortIcon col="descricao" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                    <button onClick={() => toggleSort("tipo")} className="flex items-center hover:text-gray-600 dark:hover:text-gray-200">
+                      Tipo <SortIcon col="tipo" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Categoria</th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Pagamento</th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Status</th>
+                  <th className="text-left px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                    <button onClick={() => toggleSort("data")} className="flex items-center hover:text-gray-600 dark:hover:text-gray-200">
+                      Data <SortIcon col="data" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="text-right px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">
+                    <button onClick={() => toggleSort("valorTotal")} className="flex items-center ml-auto hover:text-gray-600 dark:hover:text-gray-200">
+                      Valor <SortIcon col="valorTotal" sortBy={sortBy} sortDir={sortDir} />
+                    </button>
+                  </th>
+                  <th className="px-5 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-widest text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                {agrupar ? (
+                  groupRows(filtered).flatMap(({ key, items }) => [
+                    <tr key={`group-${key}`} className="bg-gray-50/60 dark:bg-gray-800/40">
+                      <td colSpan={9} className="px-5 py-2 text-xs font-extrabold text-gray-400 uppercase tracking-widest capitalize">
+                        {key}
+                      </td>
+                    </tr>,
+                    ...items.map(renderRow),
+                  ])
+                ) : (
+                  filtered.map(renderRow)
+                )}
+              </tbody>
+            </table>
+          )}
+          {totalPages > 1 && filtered.length > 0 && (
+            <Pagination page={page} totalPages={totalPages} total={total} onChange={setPage} />
+          )}
+        </div>
       </div>
 
       {/* Paginação mobile */}
@@ -938,9 +986,9 @@ export default function Transacoes() {
         <div className="flex md:hidden items-center justify-between mt-4">
           <p className="text-xs text-gray-400">{total} registro{total !== 1 ? "s" : ""}</p>
           <div className="flex gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">‹</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">‹</button>
             <span className="px-3 py-1 text-xs text-gray-600 dark:text-gray-400">{page} / {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">›</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1 text-xs rounded-xl border border-gray-200 dark:border-gray-700 disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-800">›</button>
           </div>
         </div>
       )}

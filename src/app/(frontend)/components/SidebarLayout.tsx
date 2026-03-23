@@ -30,13 +30,12 @@ import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/nova", label: "Nova Transação", icon: PlusCircle },
-  { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
+  { href: "/transacoes", label: "Vendas", icon: ArrowLeftRight },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity },
-  { href: "/perfil", label: "Perfil", icon: Settings },
+  { href: "/perfil", label: "Configuração", icon: Settings },
 ];
 
 function getInitials(name: string) {
@@ -203,11 +202,29 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
     ? "/fornecedores"
     : pathname.startsWith("/clientes")
     ? "/clientes"
+    : pathname.startsWith("/transacoes")
+    ? "/transacoes"
+    : pathname.startsWith("/dashboard") || pathname === "/"
+    ? "/dashboard"
+    : pathname.startsWith("/fluxo-de-caixa")
+    ? "/fluxo-de-caixa"
+    : pathname.startsWith("/relatorios")
+    ? "/relatorios"
     : null;
 
   const searchPlaceholder = pathname.startsWith("/fornecedores")
     ? "Buscar fornecedor..."
-    : "Buscar cliente...";
+    : pathname.startsWith("/clientes")
+    ? "Buscar cliente..."
+    : pathname.startsWith("/transacoes")
+    ? "Buscar venda..."
+    : pathname.startsWith("/dashboard") || pathname === "/"
+    ? "Buscar em vendas..."
+    : pathname.startsWith("/fluxo-de-caixa")
+    ? "Buscar período..."
+    : pathname.startsWith("/relatorios")
+    ? "Buscar cliente ou produto..."
+    : "Buscar...";
 
   // Limpa busca ao trocar de página pesquisável
   useEffect(() => {
@@ -297,7 +314,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-2 lg:gap-4 ml-auto lg:ml-0">
+      <div className="flex items-center gap-2 lg:gap-4 ml-auto">
         {/* Notificações */}
         <Link
           href="/relatorios"
@@ -314,7 +331,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
         <Link
           href="/transacoes"
           className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-          title="Histórico de transações"
+          title="Histórico de vendas"
         >
           <History size={20} />
         </Link>

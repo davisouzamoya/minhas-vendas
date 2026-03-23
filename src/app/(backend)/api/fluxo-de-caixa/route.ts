@@ -24,9 +24,22 @@ export async function GET(request: NextRequest) {
 
   const transactions = await prisma.transaction.findMany({
     where,
-    select: { tipo: true, valorTotal: true, data: true },
+    select: { tipo: true, valorTotal: true, data: true, descricao: true },
     orderBy: { data: "asc" },
   });
+
+  // Top 5 maiores vendas e maiores gastos
+  const maioresVendas = [...transactions]
+    .filter((t) => t.tipo === "venda" || t.tipo === "entrada")
+    .sort((a, b) => b.valorTotal - a.valorTotal)
+    .slice(0, 5)
+    .map((t) => ({ descricao: t.descricao, valorTotal: t.valorTotal, data: t.data.toISOString() }));
+
+  const maioresGastos = [...transactions]
+    .filter((t) => t.tipo === "despesa" || t.tipo === "saida")
+    .sort((a, b) => b.valorTotal - a.valorTotal)
+    .slice(0, 5)
+    .map((t) => ({ descricao: t.descricao, valorTotal: t.valorTotal, data: t.data.toISOString() }));
 
   // Agrupa por semana ISO ou mês
   const map: Record<string, { label: string; entradas: number; saidas: number; ordem: number }> = {};
@@ -77,5 +90,5 @@ export async function GET(request: NextRequest) {
       };
     });
 
-  return NextResponse.json({ rows });
+  return NextResponse.json({ rows, maioresVendas, maioresGastos });
 }

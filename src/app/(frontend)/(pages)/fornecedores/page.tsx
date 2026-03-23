@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar } from "lucide-react";
+import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar, Search } from "lucide-react";
 
 interface Fornecedor {
   id: number;
@@ -115,7 +114,7 @@ function FornecedorModal({ fornecedor, onSave, onCancel }: {
   const [form, setForm] = useState({ nome: fornecedor?.nome ?? "", telefone: fornecedor?.telefone ?? "", email: fornecedor?.email ?? "" });
   const [saving, setSaving] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     const url = fornecedor ? `/api/fornecedores/${fornecedor.id}` : "/api/fornecedores";
@@ -181,14 +180,13 @@ function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
   );
 }
 
-export default function Fornecedores() {
+function FornecedoresContent() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
   const [selected, setSelected] = useState<Fornecedor | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [historicoFornecedor, setHistoricoFornecedor] = useState<Fornecedor | null>(null);
-  const searchParams = useSearchParams();
-  const busca = searchParams.get("q")?.toLowerCase() ?? "";
+  const [busca, setBusca] = useState("");
 
   async function load() {
     const res = await fetch("/api/fornecedores");
@@ -205,11 +203,12 @@ export default function Fornecedores() {
     load();
   }
 
-  const filtrados = busca
+  const q = busca.toLowerCase();
+  const filtrados = q
     ? fornecedores.filter((f) =>
-        f.nome.toLowerCase().includes(busca) ||
-        (f.telefone ?? "").includes(busca) ||
-        (f.email ?? "").toLowerCase().includes(busca)
+        f.nome.toLowerCase().includes(q) ||
+        (f.telefone ?? "").includes(q) ||
+        (f.email ?? "").toLowerCase().includes(q)
       )
     : fornecedores;
 
@@ -226,21 +225,33 @@ export default function Fornecedores() {
       {historicoFornecedor && <HistoricoModal fornecedor={historicoFornecedor} onClose={() => setHistoricoFornecedor(null)} />}
 
       {/* Header */}
-      <div className="flex items-end justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fornecedores</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Gerencie quem ajuda o seu negócio a crescer.</p>
+      <div className="flex items-center justify-between mb-8 gap-4">
+        <div className="shrink-0">
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Fornecedores</h1>
+          <p className="text-base text-gray-400 mt-1.5">Gerencie quem ajuda o seu negócio a crescer.</p>
         </div>
-        <button
-          onClick={() => setModal("new")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
-        >
-          <div className="relative">
-            <Building2 size={16} />
-            <Plus size={9} className="absolute -top-1 -right-1.5 stroke-[3]" />
+        <div className="flex items-center gap-3 flex-1 justify-end">
+          <div className="relative w-full max-w-xs">
+            <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar fornecedor..."
+              className="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-full py-2.5 pl-10 pr-4 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all"
+            />
           </div>
-          Novo Fornecedor
-        </button>
+          <button
+            onClick={() => setModal("new")}
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
+          >
+            <div className="relative">
+              <Building2 size={16} />
+              <Plus size={9} className="absolute -top-1 -right-1.5 stroke-[3]" />
+            </div>
+            Novo Fornecedor
+          </button>
+        </div>
       </div>
 
       {/* Stat */}
@@ -369,4 +380,8 @@ export default function Fornecedores() {
       </div>
     </div>
   );
+}
+
+export default function Fornecedores() {
+  return <FornecedoresContent />;
 }

@@ -69,5 +69,6 @@ model Perfil {
   logoUrl      String?
   categorias   Json?
   role         String   @default("user")
+  metaMensal   Float?
   updatedAt    DateTime @updatedAt
 }
