@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   CheckCircle,
@@ -57,8 +57,10 @@ const inputCls =
 const selectCls =
   "w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all appearance-none";
 
-export default function NovaVenda() {
+function NovaVendaContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const onboarding = searchParams.get("onboarding") === "1";
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [divida, setDivida] = useState<{ total: number; count: number } | null>(null);
@@ -230,7 +232,7 @@ export default function NovaVenda() {
     if (res.ok) {
       localStorage.removeItem(DRAFT_KEY);
       setSuccess(true);
-      setTimeout(() => router.push("/transacoes"), 1500);
+      setTimeout(() => router.push(onboarding ? "/clientes?onboarding=1" : "/transacoes"), 1500);
     }
   }
 
@@ -681,5 +683,13 @@ export default function NovaVenda() {
 
       </form>
     </div>
+  );
+}
+
+export default function NovaVenda() {
+  return (
+    <Suspense fallback={null}>
+      <NovaVendaContent />
+    </Suspense>
   );
 }

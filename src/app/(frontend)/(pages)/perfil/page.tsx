@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Settings, Target, Store, Image } from "lucide-react";
 
-export default function Perfil() {
+function PerfilContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const onboarding = searchParams.get("onboarding") === "1";
   const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "", metaMensal: "" });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -25,8 +27,12 @@ export default function Perfil() {
       body: JSON.stringify({ nomeNegocio: form.nomeNegocio, logoUrl: form.logoUrl || null, metaMensal: form.metaMensal || null }),
     });
     setLoading(false);
-    setSaved(true);
     window.dispatchEvent(new Event("perfilUpdated"));
+    if (onboarding) {
+      router.push("/nova?onboarding=1");
+      return;
+    }
+    setSaved(true);
     router.refresh();
     setTimeout(() => setSaved(false), 3000);
   }
@@ -161,5 +167,13 @@ export default function Perfil() {
       </div>
 
     </form>
+  );
+}
+
+export default function Perfil() {
+  return (
+    <Suspense fallback={null}>
+      <PerfilContent />
+    </Suspense>
   );
 }

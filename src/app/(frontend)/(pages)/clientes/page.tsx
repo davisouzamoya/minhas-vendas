@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Cliente {
@@ -268,6 +268,8 @@ function ClientesContent() {
   const [pagina, setPagina] = useState(1);
   const searchParams = useSearchParams();
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
+  const onboarding = searchParams.get("onboarding") === "1";
+  const router = useRouter();
 
   useEffect(() => { setBusca(searchParams.get("q") ?? ""); }, [searchParams]);
 
@@ -335,7 +337,11 @@ function ClientesContent() {
       {(modal === "new" || modal === "edit") && (
         <ClienteModal
           cliente={modal === "edit" ? selected ?? undefined : undefined}
-          onSave={() => { setModal(null); load(); }}
+          onSave={() => {
+            setModal(null);
+            load();
+            if (modal === "new" && onboarding) router.push("/dashboard");
+          }}
           onCancel={() => setModal(null)}
         />
       )}
