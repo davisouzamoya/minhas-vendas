@@ -271,7 +271,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
   }, []);
 
   return (
-    <header className="sticky top-0 w-full z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
+    <header className="fixed top-0 left-0 right-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4 lg:left-0">
       {/* Mobile: hamburger */}
       <button
         onClick={onMobileMenuOpen}
@@ -413,7 +413,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           desktopOpen={desktopOpen}
           onDesktopOpen={() => setDesktopOpen(true)}
         />
-        <main className="flex-1 p-5 sm:p-6 lg:p-8">
+        <main className="flex-1 p-5 sm:p-6 lg:p-8 pt-[calc(4rem+1.25rem)] sm:pt-[calc(4rem+1.5rem)] lg:pt-[calc(4rem+2rem)]">
           {children}
         </main>
       </div>
