@@ -4,17 +4,29 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Settings, Target, Store, Image } from "lucide-react";
 
+function formatCentavos(centavos: number): string {
+  return (centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function PerfilContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onboarding = searchParams.get("onboarding") === "1";
   const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "", metaMensal: "" });
+  const [metaDisplay, setMetaDisplay] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (d) setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: d.metaMensal ? String(d.metaMensal) : "" });
+      if (d) {
+        const meta = d.metaMensal ? String(d.metaMensal) : "";
+        setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: meta });
+        if (d.metaMensal) {
+          const cents = Math.round(parseFloat(meta) * 100);
+          setMetaDisplay(formatCentavos(cents));
+        }
+      }
     });
   }, []);
 
@@ -137,11 +149,16 @@ function PerfilContent() {
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">R$</span>
               <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.metaMensal}
-                onChange={(e) => setForm({ ...form, metaMensal: e.target.value })}
+                type="text"
+                inputMode="numeric"
+                value={metaDisplay}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const cents = parseInt(digits || "0", 10);
+                  const formatted = formatCentavos(cents);
+                  setMetaDisplay(formatted);
+                  setForm({ ...form, metaMensal: (cents / 100).toString() });
+                }}
                 placeholder="0,00"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all"
               />
