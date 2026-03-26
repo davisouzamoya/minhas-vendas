@@ -43,26 +43,9 @@ function PerfilContent() {
     <form onSubmit={handleSubmit} className="space-y-8 pb-8">
 
       {/* Header */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Configuração</h1>
-          <p className="hidden sm:block text-base text-gray-400 mt-1.5">Personalize o seu negócio e defina suas metas.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && (
-            <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-              <CheckCircle size={16} /> Salvo com sucesso!
-            </div>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20 disabled:opacity-50"
-          >
-            <Settings size={15} />
-            {loading ? "Salvando..." : "Salvar alterações"}
-          </button>
-        </div>
+      <div>
+        <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Configuração</h1>
+        <p className="hidden sm:block text-base text-gray-400 mt-1.5">Personalize o seu negócio e defina suas metas.</p>
       </div>
 
       {/* Seção: Negócio */}
@@ -164,6 +147,23 @@ function PerfilContent() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Botão salvar */}
+      <div className="flex items-center justify-end gap-3">
+        {saved && (
+          <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+            <CheckCircle size={16} /> Salvo com sucesso!
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20 disabled:opacity-50"
+        >
+          <Settings size={15} />
+          {loading ? "Salvando..." : "Salvar alterações"}
+        </button>
       </div>
 
     </form>
