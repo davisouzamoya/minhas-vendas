@@ -411,8 +411,8 @@ function ClientesContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Clientes</h1>
-          <p className="text-sm sm:text-base text-gray-400 mt-1.5">Cadastre e acompanhe seus clientes aqui.</p>
+          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Clientes</h1>
+          <p className="hidden sm:block text-base text-gray-400 mt-1.5">Cadastre e acompanhe seus clientes aqui.</p>
         </div>
         <button
           onClick={() => setModal("new")}

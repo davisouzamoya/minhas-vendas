@@ -241,7 +241,7 @@ function DashboardContent() {
       )}
 
       {/* Greeting */}
-      <div>
+      <div className="hidden sm:block">
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
           Boas-vindas, {primeiroNome}!
         </h1>

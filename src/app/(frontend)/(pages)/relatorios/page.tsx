@@ -287,8 +287,8 @@ function RelatoriosContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Relatórios</h1>
-          <p className="text-sm sm:text-base text-gray-400 mt-1">Análise financeira detalhada do seu negócio.</p>
+          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Relatórios</h1>
+          <p className="hidden sm:block text-base text-gray-400 mt-1">Análise financeira detalhada do seu negócio.</p>
         </div>
         <button
           onClick={() => window.print()}

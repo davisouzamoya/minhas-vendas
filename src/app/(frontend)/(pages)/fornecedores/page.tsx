@@ -280,8 +280,8 @@ function FornecedoresContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div className="shrink-0">
-          <h1 className="font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Fornecedores</h1>
-          <p className="text-gray-400 mt-1.5">Gerencie quem ajuda o seu negócio a crescer.</p>
+          <h1 className="hidden sm:block font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Fornecedores</h1>
+          <p className="hidden sm:block text-gray-400 mt-1.5">Gerencie quem ajuda o seu negócio a crescer.</p>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 sm:justify-end">
           <div className="relative w-full sm:max-w-xs">

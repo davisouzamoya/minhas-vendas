@@ -270,16 +270,27 @@ function AppHeader({ onMobileMenuOpen }: {
 
       {/* Mobile: logo ou título da página */}
       <div className="flex items-center gap-2 lg:hidden">
-        {pathname.startsWith("/fluxo-de-caixa") ? (
-          <span className="font-bold text-gray-900 dark:text-white text-base">Fluxo de Caixa</span>
-        ) : (
-          <>
-            <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
-              <TrendingUp size={13} className="text-white" />
-            </div>
-            <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
-          </>
-        )}
+        {(() => {
+          const pageTitle =
+            pathname.startsWith("/fluxo-de-caixa") ? "Fluxo de Caixa" :
+            pathname.startsWith("/transacoes") ? "Vendas" :
+            pathname.startsWith("/clientes") ? "Clientes" :
+            pathname.startsWith("/fornecedores") ? "Fornecedores" :
+            pathname.startsWith("/relatorios") ? "Relatórios" :
+            pathname.startsWith("/perfil") ? "Configuração" :
+            pathname.startsWith("/dashboard") ? "Dashboard" :
+            null;
+          return pageTitle ? (
+            <span className="font-bold text-gray-900 dark:text-white text-base">{pageTitle}</span>
+          ) : (
+            <>
+              <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
+                <TrendingUp size={13} className="text-white" />
+              </div>
+              <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
+            </>
+          );
+        })()}
       </div>
 
       {/* Search — desktop only, visível em clientes e fornecedores */}

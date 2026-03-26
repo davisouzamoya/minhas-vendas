@@ -45,8 +45,8 @@ function PerfilContent() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Configuração</h1>
-          <p className="text-base text-gray-400 mt-1.5">Personalize o seu negócio e defina suas metas.</p>
+          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Configuração</h1>
+          <p className="hidden sm:block text-base text-gray-400 mt-1.5">Personalize o seu negócio e defina suas metas.</p>
         </div>
         <div className="flex items-center gap-3">
           {saved && (
