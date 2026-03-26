@@ -168,12 +168,11 @@ function FluxoDeCaixaContent() {
     <div className="space-y-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+      <div className="hidden sm:flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Fluxo de Caixa</h1>
-          <p className="hidden sm:block text-base text-gray-400 mt-1.5">Visão geral do seu desempenho financeiro.</p>
+          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Fluxo de Caixa</h1>
+          <p className="text-base text-gray-400 mt-1.5">Visão geral do seu desempenho financeiro.</p>
         </div>
-        
       </div>
 
       {/* Cards */}
