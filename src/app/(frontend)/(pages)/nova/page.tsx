@@ -299,24 +299,6 @@ function NovaVendaContent() {
         </div>
       )}
 
-      {/* Draft restore banner */}
-      {hasDraft && (
-        <div className="mb-6 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <p className="text-sm text-amber-800 font-medium">
-            Você tem um rascunho salvo. Deseja restaurar?
-          </p>
-          <div className="flex gap-2">
-            <button onClick={restoreDraft}
-              className="px-3 py-1.5 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors">
-              Restaurar
-            </button>
-            <button onClick={discardDraft}
-              className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:underline">
-              Descartar
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Type Selector — Bento cards */}
       <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
