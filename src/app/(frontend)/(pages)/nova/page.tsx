@@ -67,6 +67,7 @@ function NovaVendaContent() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
+  const [ultimaCompra, setUltimaCompra] = useState<null | { produto: string | null; categoria: string | null; valor_total: string; forma_pagamento: string; clienteId: string }>(null);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string>("");
   const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
@@ -97,7 +98,24 @@ function NovaVendaContent() {
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
     fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
     const clienteIdParam = searchParams.get("clienteId");
-    if (clienteIdParam) setForm((prev) => ({ ...prev, clienteId: clienteIdParam }));
+    if (clienteIdParam) {
+      setForm((prev) => ({ ...prev, clienteId: clienteIdParam }));
+      // Busca última compra do cliente
+      fetch(`/api/transactions?clienteId=${clienteIdParam}&limit=1`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          const t = d?.transactions?.[0];
+          if (t && (t.produto || t.valorTotal)) {
+            setUltimaCompra({
+              produto: t.produto ?? null,
+              categoria: t.categoria ?? null,
+              valor_total: String(t.valorTotal),
+              forma_pagamento: t.formaPagamento ?? "",
+              clienteId: clienteIdParam,
+            });
+          }
+        });
+    }
   }, []);
 
   useEffect(() => {
@@ -250,6 +268,36 @@ function NovaVendaContent() {
 
   return (
     <div className="w-full max-w-4xl mx-auto pb-12">
+
+      {/* Última compra do cliente */}
+      {ultimaCompra && !hasDraft && (
+        <div className="mb-6 flex items-center justify-between gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl px-4 py-3">
+          <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+            Restaurar dados da última compra deste cliente?
+            {ultimaCompra.produto && <span className="ml-1 text-blue-600 dark:text-blue-400">({ultimaCompra.produto})</span>}
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  produto: ultimaCompra.produto ?? "",
+                  categoria: ultimaCompra.categoria ?? "",
+                  valor_total: ultimaCompra.valor_total,
+                  forma_pagamento: ultimaCompra.forma_pagamento,
+                }));
+                setUltimaCompra(null);
+              }}
+              className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Restaurar
+            </button>
+            <button onClick={() => setUltimaCompra(null)} className="px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 hover:underline">
+              Ignorar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Draft restore banner */}
       {hasDraft && (
