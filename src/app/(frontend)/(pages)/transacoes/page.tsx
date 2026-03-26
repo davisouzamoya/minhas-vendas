@@ -879,12 +879,12 @@ function TransacoesContent() {
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
               <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></input>
             </div>
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
               <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></input>
             </div>
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Categoria</label>
