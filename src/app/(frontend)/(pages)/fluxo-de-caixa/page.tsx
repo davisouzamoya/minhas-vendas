@@ -115,32 +115,75 @@ function FluxoDeCaixaContent() {
     URL.revokeObjectURL(url);
   }
 
+  if (loading) return (
+    <div className="space-y-8 animate-pulse">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-9 w-44 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+        <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
+      </div>
+      {/* 3 cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-7 space-y-3">
+            <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded" />
+            <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+            <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+          </div>
+        ))}
+      </div>
+      {/* Chart */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+        <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+      </div>
+      {/* Two panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="h-5 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {[...Array(4)].map((_, j) => (
+                <div key={j} className="px-6 py-3 flex items-center gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                  </div>
+                  <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Fluxo de Caixa</h1>
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Fluxo de Caixa</h1>
           <p className="text-base text-gray-400 mt-1.5">Visão geral do seu desempenho financeiro.</p>
         </div>
-        <button
-          onClick={exportCSV}
-          className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-5 py-3 rounded-full font-bold text-sm shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02] shrink-0"
-        >
-          <Download size={16} />
-          Exportar CSV
-        </button>
+        
       </div>
 
       {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {/* Entradas */}
         <div
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 border-t-4 border-t-green-600 p-7 flex flex-col justify-between shadow-sm"
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 border-t-green-600 p-7 flex flex-col justify-between shadow-sm"
           style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
         >
-          <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center mb-5">
+          <div className="">
             <TrendingUp size={22} />
           </div>
           <div>
@@ -202,11 +245,7 @@ function FluxoDeCaixaContent() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-12 text-center text-sm text-gray-400">
-          Carregando...
-        </div>
-      ) : rows.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-12 text-center text-sm text-gray-400">
           Nenhuma transação no período selecionado.
         </div>
@@ -214,7 +253,7 @@ function FluxoDeCaixaContent() {
         <>
           {/* Gráfico de Performance */}
           <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
-            <div className="flex items-center justify-between mb-6">
+            <div className="items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Gráfico de Performance</h2>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
@@ -228,7 +267,7 @@ function FluxoDeCaixaContent() {
               </div>
             </div>
             <PerformanceChart data={rows} />
-          </div>
+          </div> 
 
           {/* Maiores Vendas + Maiores Gastos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -263,7 +302,7 @@ function FluxoDeCaixaContent() {
             </div>
 
             {/* Maiores Gastos */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
+            {/* <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
               <div className="flex items-center gap-2 mb-6">
                 <div className="w-8 h-8 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-lg flex items-center justify-center">
                   <AlertTriangle size={16} />
@@ -290,7 +329,7 @@ function FluxoDeCaixaContent() {
                   ))}
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
         </>
       )}

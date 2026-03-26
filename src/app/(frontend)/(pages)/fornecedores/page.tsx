@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar, Search } from "lucide-react";
+
+function maskPhone(value: string) {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 
 interface Fornecedor {
   id: number;
@@ -141,9 +148,9 @@ function FornecedorModal({ fornecedor, onSave, onCancel }: {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefone</label>
-            <input type="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-              placeholder="(11) 99999-9999"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+            <input type="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })}
+              placeholder="(11) 99999-9999" inputMode="numeric"
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
@@ -182,6 +189,7 @@ function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
 
 function FornecedoresContent() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
   const [selected, setSelected] = useState<Fornecedor | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -192,6 +200,7 @@ function FornecedoresContent() {
     const res = await fetch("/api/fornecedores");
     if (!res.ok) return;
     setFornecedores(await res.json());
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
@@ -212,6 +221,50 @@ function FornecedoresContent() {
       )
     : fornecedores;
 
+  if (loading) return (
+    <div className="space-y-8 animate-pulse pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+        <div className="flex gap-3 flex-1 sm:justify-end">
+          <div className="h-11 w-full sm:w-48 bg-gray-100 dark:bg-gray-800 rounded-full" />
+          <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full shrink-0" />
+        </div>
+      </div>
+      {/* Stat card */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 w-full flex items-center gap-4" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
+        <div className="space-y-2">
+          <div className="h-3 w-10 bg-gray-100 dark:bg-gray-800 rounded" />
+          <div className="h-6 w-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        </div>
+      </div>
+      {/* Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 space-y-4" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800" />
+              <div className="flex gap-1">
+                {[...Array(3)].map((_, j) => (
+                  <div key={j} className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800" />
+                ))}
+              </div>
+            </div>
+            <div className="h-5 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="space-y-2">
+              <div className="h-4 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-40 bg-gray-100 dark:bg-gray-800 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="pb-8">
       {(modal === "new" || modal === "edit") && (
@@ -225,13 +278,13 @@ function FornecedoresContent() {
       {historicoFornecedor && <HistoricoModal fornecedor={historicoFornecedor} onClose={() => setHistoricoFornecedor(null)} />}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div className="shrink-0">
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Fornecedores</h1>
-          <p className="text-base text-gray-400 mt-1.5">Gerencie quem ajuda o seu negócio a crescer.</p>
+          <h1 className="font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Fornecedores</h1>
+          <p className="text-gray-400 mt-1.5">Gerencie quem ajuda o seu negócio a crescer.</p>
         </div>
-        <div className="flex items-center gap-3 flex-1 justify-end">
-          <div className="relative w-full max-w-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 sm:justify-end">
+          <div className="relative w-full sm:max-w-xs">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               type="text"
@@ -243,7 +296,7 @@ function FornecedoresContent() {
           </div>
           <button
             onClick={() => setModal("new")}
-            className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
+            className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
           >
             <div className="relative">
               <Building2 size={16} />
@@ -258,7 +311,7 @@ function FornecedoresContent() {
       {fornecedores.length > 0 && (
         <div className="mb-8">
           <div
-            className="inline-flex items-center gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 w-56"
+            className="flex items-center gap-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 w-full"
             style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
           >
             <div className="p-2.5 bg-green-50 dark:bg-green-900/30 rounded-full">
@@ -383,5 +436,9 @@ function FornecedoresContent() {
 }
 
 export default function Fornecedores() {
-  return <FornecedoresContent />;
+  return (
+    <Suspense>
+      <FornecedoresContent />
+    </Suspense>
+  );
 }

@@ -382,7 +382,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-hidden">
       {/* Sidebar desktop */}
       <aside
         className={`hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30 transition-transform duration-300 ${
@@ -413,7 +413,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           desktopOpen={desktopOpen}
           onDesktopOpen={() => setDesktopOpen(true)}
         />
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-5 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

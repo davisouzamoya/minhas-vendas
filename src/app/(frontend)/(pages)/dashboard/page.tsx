@@ -111,6 +111,7 @@ function Variacao({ variacao, invertido = false }: { variacao: number; invertido
 
 function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const busca = searchParams.get("q")?.toLowerCase() ?? "";
@@ -121,6 +122,7 @@ function DashboardContent() {
     fetch("/api/dashboard").then((r) => r.json()).then((d) => {
       setData(d);
       setOnboardingCompleto(d?.onboarding?.completo ?? false);
+      setLoading(false);
     });
   }, []);
 
@@ -184,6 +186,51 @@ function DashboardContent() {
   const faltaMeta = meta ? Math.max(0, meta - vendasMes) : 0;
 
   const primeiroNome = data?.nomeNegocio?.split(" ")[0] ?? "empreendedor";
+
+  if (loading) return (
+    <div className="space-y-8 animate-pulse">
+      {/* Greeting */}
+      <div className="space-y-2">
+        <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-4 w-72 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800" />
+            <div className="space-y-2">
+              <div className="h-3 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-8 w-28 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Chart */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+        <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+      </div>
+      {/* Recent sales */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="h-6 w-36 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="px-6 py-4 flex items-center gap-4">
+              <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+              </div>
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">

@@ -158,7 +158,123 @@ function RelatoriosContent() {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then(setPerfil); }, []);
 
-  if (!data) return <p className="text-gray-400 text-sm">Carregando...</p>;
+  if (!data) return (
+    <div className="space-y-8 animate-pulse">
+      {/* Header skeleton */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-9 w-48 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+        <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
+      </div>
+
+      {/* Filtro skeleton */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3 w-12 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+          </div>
+        </div>
+      </div>
+
+      {/* Cards por tipo */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 dark:bg-gray-800 rounded-xl" />
+            <div className="space-y-2">
+              <div className="h-2.5 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-7 w-28 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+              <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Evolução mensal */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
+          <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="flex gap-3 sm:ml-auto">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-3.5 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
+            ))}
+          </div>
+        </div>
+        <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+      </div>
+
+      {/* Donut charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
+            <div className="h-6 w-44 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+              <div className="w-36 h-36 rounded-full bg-gray-100 dark:bg-gray-800 mx-auto sm:mx-0 shrink-0" />
+              <div className="flex-1 space-y-3">
+                {[...Array(4)].map((_, j) => (
+                  <div key={j} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-4 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                    </div>
+                    <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Ranking */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="px-4 py-3 flex items-center gap-3">
+              <div className="w-5 h-4 bg-gray-100 dark:bg-gray-800 rounded shrink-0" />
+              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-48 bg-gray-100 dark:bg-gray-800 rounded" />
+              </div>
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Lucro por produto */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="h-6 w-56 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="px-4 py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+              </div>
+              <div className="flex gap-4">
+                <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const q = busca.toLowerCase();
   const inadimplenciaFiltrada = q ? data.inadimplencia.filter((i) => i.nome.toLowerCase().includes(q)) : data.inadimplencia;
@@ -169,14 +285,14 @@ function RelatoriosContent() {
     <div className="space-y-8">
 
       {/* Header */}
-      <div className="flex items-end justify-between print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Relatórios</h1>
-          <p className="text-base text-gray-400 mt-1.5">Análise financeira detalhada do seu negócio.</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Relatórios</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">Análise financeira detalhada do seu negócio.</p>
         </div>
         <button
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-5 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-sm rounded-full shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02]"
+          className="flex items-center gap-2 px-5 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-sm rounded-full shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02] w-full sm:w-auto justify-center"
         >
           <Printer size={16} /> Exportar PDF
         </button>
@@ -221,15 +337,15 @@ function RelatoriosContent() {
 
       {/* Totais por Tipo */}
       {data.porTipo.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-2">
           {data.porTipo.map(({ tipo, total, count }) => (
             <div key={tipo} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tipoColor[tipo] ?? "bg-gray-100 text-gray-500"}`}>
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${tipoColor[tipo] ?? "bg-gray-100 text-gray-500"}`}>
                 {tipoIcon[tipo] ?? <TrendingUp size={16} />}
               </div>
               <div>
                 <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">{tipoLabel[tipo] ?? tipo}</p>
-                <p className="text-2xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(total)}</p>
+                <p className="text-base sm:text-2xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(total)}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{count} {count === 1 ? "transação" : "transações"}</p>
               </div>
             </div>
@@ -239,40 +355,42 @@ function RelatoriosContent() {
 
       {/* Inadimplência */}
       {inadimplenciaFiltrada.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-orange-200 dark:border-orange-900/40 p-7">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-                <AlertTriangle size={18} className="text-orange-500" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Inadimplência</h2>
-                <p className="text-xs text-gray-400">Vendas com pagamento pendente</p>
-              </div>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-orange-200 dark:border-orange-900/40 p-4 sm:p-7">
+          <div className="items-center gap-3 mb-4 sm:mb-6">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} className="text-orange-500" />
             </div>
-            <span className="text-lg font-extrabold text-orange-600 dark:text-orange-400">{formatCurrency(data.totalInadimplencia)}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Inadimplência</h2>
+                <span className="text-base sm:text-lg font-extrabold text-orange-600 dark:text-orange-400 shrink-0">{formatCurrency(data.totalInadimplencia)}</span>
+              </div>
+              <p className="text-xs text-gray-400">Vendas com pagamento pendente</p>
+            </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {inadimplenciaFiltrada.map((i) => (
-              <div key={i.nome} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div key={i.nome} className="py-3 px-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                {/* Linha 1: avatar + nome + valor */}
+                <div className="flex items-center gap-1 mb-4">
                   <div className="w-9 h-9 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 text-xs font-bold shrink-0">
                     {getInitials(i.nome)}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{i.nome}</p>
                     <p className="text-xs text-gray-400">
                       {i.count} pendente{i.count !== 1 ? "s" : ""}
                       {i.diasEmAtraso > 0 && (
                         <span className={`ml-1.5 font-semibold ${i.diasEmAtraso > 30 ? "text-red-500" : "text-orange-500"}`}>
-                          · {i.diasEmAtraso} dia{i.diasEmAtraso !== 1 ? "s" : ""} em atraso
+                          · {i.diasEmAtraso}d em atraso
                         </span>
                       )}
                     </p>
                   </div>
+                  <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400 shrink-0">{formatCurrency(i.total)}</p>
                 </div>
-                <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400 shrink-0">{formatCurrency(i.total)}</p>
-                <div className="print:hidden flex items-center gap-2 shrink-0">
+                {/* Linha 2: botões */}
+                <div className="print:hidden flex items-center gap-2 pl-12">
                   <button onClick={() => cobrarWhatsApp(i.nome, i.total, i.count, i.telefone)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-full transition-colors">
                     <MessageCircle size={12} /> Cobrar
@@ -290,10 +408,10 @@ function RelatoriosContent() {
       )}
 
       {/* Evolução Mensal */}
-      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Evolução Mensal</h2>
-          <div className="flex items-center gap-4">
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">Evolução Mensal</h2>
+          <div className="flex items-center flex-wrap gap-3 sm:gap-4">
             {[{ color: "#16a34a", label: "Vendas" }, { color: "#dc2626", label: "Despesas" }, { color: "#2563eb", label: "Entradas" }].map(({ color, label }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -311,13 +429,15 @@ function RelatoriosContent() {
       {/* Gastos por categoria + Formas de pagamento */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Por categoria */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">Gastos por Categoria</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 sm:mb-6">Gastos por Categoria</h2>
           {data.porCategoria.length === 0 ? (
             <p className="text-sm text-gray-400">Sem dados.</p>
           ) : (
-            <div className="flex items-center gap-6">
-              <DonutChart data={data.porCategoria.map((d) => ({ name: d.categoria, value: d.total }))} colors={COLORS} label="categorias" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+              <div className="flex justify-center sm:justify-start">
+                <DonutChart data={data.porCategoria.map((d) => ({ name: d.categoria, value: d.total }))} colors={COLORS} label="categorias" />
+              </div>
               <div className="flex-1 space-y-2 min-w-0">
                 {data.porCategoria.slice(0, 6).map((d, i) => (
                   <div key={d.categoria} className="flex items-center justify-between gap-2">
@@ -335,10 +455,12 @@ function RelatoriosContent() {
 
         {/* Formas de pagamento */}
         {data.porFormaPagamento.length > 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6">Formas de Pagamento</h2>
-            <div className="flex items-center gap-6">
-              <DonutChart data={data.porFormaPagamento.map((d) => ({ name: d.forma, value: d.total }))} colors={COLORS} label="formas" />
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 sm:mb-6">Formas de Pagamento</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+              <div className="flex justify-center sm:justify-start">
+                <DonutChart data={data.porFormaPagamento.map((d) => ({ name: d.forma, value: d.total }))} colors={COLORS} label="formas" />
+              </div>
               <div className="flex-1 space-y-2 min-w-0">
                 {data.porFormaPagamento.map((f, i) => (
                   <div key={f.forma} className="flex items-center justify-between gap-2">
@@ -354,7 +476,7 @@ function RelatoriosContent() {
             </div>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-7 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7 flex items-center justify-center">
             <div className="text-center">
               <CreditCard size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-sm text-gray-400">Sem dados de formas de pagamento.</p>
@@ -364,79 +486,9 @@ function RelatoriosContent() {
       </div>
 
       {/* Ranking de clientes */}
-      {rankingFiltrado.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div className="px-7 py-6 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Ranking de Clientes</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800/50 text-[10px] uppercase tracking-widest text-gray-400 font-bold border-b border-gray-100 dark:border-gray-800">
-                  <th className="px-7 py-3 text-left w-8">#</th>
-                  <th className="px-4 py-3 text-left">Cliente</th>
-                  <th className="px-4 py-3 text-right">Total comprado</th>
-                  <th className="px-4 py-3 text-right">Pedidos</th>
-                  <th className="px-4 py-3 text-right">Ticket médio</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {rankingFiltrado.map((c, idx) => (
-                  <tr key={c.clienteId ?? idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <td className="px-7 py-4 text-gray-400 font-bold">{idx + 1}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 text-[11px] font-bold shrink-0">
-                          {getInitials(c.nome)}
-                        </div>
-                        <span className="font-semibold text-gray-800 dark:text-gray-100">{c.nome}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-green-600 dark:text-green-400">{formatCurrency(c.total)}</td>
-                    <td className="px-4 py-4 text-right text-gray-500 dark:text-gray-400">{c.transacoes}</td>
-                    <td className="px-4 py-4 text-right text-gray-600 dark:text-gray-300">{formatCurrency(c.ticketMedio)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+ 
 
-      {/* Lucro por produto */}
-      {produtosFiltrados.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div className="px-7 py-6 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Lucro Líquido por Produto</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-gray-800/50 text-[10px] uppercase tracking-widest text-gray-400 font-bold border-b border-gray-100 dark:border-gray-800">
-                  <th className="px-7 py-3 text-left">Produto</th>
-                  <th className="px-4 py-3 text-right">Receita</th>
-                  <th className="px-4 py-3 text-right">Custo</th>
-                  <th className="px-4 py-3 text-right">Lucro</th>
-                  <th className="px-4 py-3 text-right">Vendas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {produtosFiltrados.map(({ produto, receita, custo, lucro, transacoes }) => (
-                  <tr key={produto} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <td className="px-7 py-4 font-semibold text-gray-800 dark:text-gray-100">{produto}</td>
-                    <td className="px-4 py-4 text-right text-green-600 dark:text-green-400 font-semibold">{formatCurrency(receita)}</td>
-                    <td className="px-4 py-4 text-right text-red-500 font-semibold">{formatCurrency(custo)}</td>
-                    <td className={`px-4 py-4 text-right font-extrabold ${lucro >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
-                      {formatCurrency(lucro)}
-                    </td>
-                    <td className="px-4 py-4 text-right text-gray-500 dark:text-gray-400">{transacoes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+  
     </div>
   );
 }

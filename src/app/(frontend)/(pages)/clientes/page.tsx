@@ -4,6 +4,13 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight } from "lucide-react";
 
+function maskPhone(value: string) {
+  const d = value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 interface Cliente {
   id: number;
   nome: string;
@@ -206,9 +213,9 @@ function ClienteModal({ cliente, onSave, onCancel }: {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Telefone</label>
-            <input type="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-              placeholder="(11) 99999-9999"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Celular</label>
+            <input type="tel" value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskPhone(e.target.value) })}
+              placeholder="(11) 99999-9999" inputMode="numeric"
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
@@ -268,6 +275,7 @@ function ClientesContent() {
   const [pagina, setPagina] = useState(1);
   const searchParams = useSearchParams();
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
+  const [loading, setLoading] = useState(true);
   const onboarding = searchParams.get("onboarding") === "1";
   const router = useRouter();
 
@@ -278,6 +286,7 @@ function ClientesContent() {
     if (!res.ok) return;
     setClientes(await res.json());
     fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => { if (d) setStats(d); });
+    setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
@@ -332,8 +341,59 @@ function ClientesContent() {
     { key: "inativos", label: "Inativos", count: stats.inativos },
   ];
 
+  if (loading) return (
+    <div className="space-y-8 animate-pulse pb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+        <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800" />
+            <div className="space-y-2">
+              <div className="h-3 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-8 w-20 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-9 w-24 bg-gray-100 dark:bg-gray-800 rounded-full" />
+        ))}
+      </div>
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex gap-4">
+          <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-5 w-20 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="px-6 py-4 flex items-center gap-4">
+              <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+              </div>
+              <div className="h-6 w-20 bg-gray-100 dark:bg-gray-800 rounded-full shrink-0" />
+              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="pb-24">
+    <div className="pb-8">
       {(modal === "new" || modal === "edit") && (
         <ClienteModal
           cliente={modal === "edit" ? selected ?? undefined : undefined}
@@ -349,59 +409,60 @@ function ClientesContent() {
       {historicoCliente && <HistoricoModal cliente={historicoCliente} onClose={() => setHistoricoCliente(null)} />}
 
       {/* Header */}
-      <div className="flex items-end justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Clientes</h1>
-          <p className="text-base text-gray-400 mt-1.5">Cadastre e acompanhe seus clientes aqui.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestão de Clientes</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1.5">Cadastre e acompanhe seus clientes aqui.</p>
         </div>
         <button
           onClick={() => setModal("new")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20"
+          className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors shadow-sm shadow-green-600/20 w-full sm:w-auto"
         >
           <UserPlus size={16} /> Novo Cliente
         </button>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-          <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-            <Users size={18} className="text-green-600 dark:text-green-400" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-5 flex flex-col gap-2 sm:gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+            <Users size={16} className="text-green-600 dark:text-green-400" />
           </div>
           <div>
-            <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Total de Clientes</p>
-            <p className="text-2xl font-extrabold text-gray-800 dark:text-gray-100">{stats.totalClientes}</p>
+            <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Total</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-gray-800 dark:text-gray-100">{stats.totalClientes}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-          <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-            <AlertCircle size={18} className="text-orange-500" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-5 flex flex-col gap-2 sm:gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+            <AlertCircle size={16} className="text-orange-500" />
           </div>
           <div>
             <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Em Débito</p>
-            <p className="text-2xl font-extrabold text-orange-500">{stats.emDebito}</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-orange-500">{stats.emDebito}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-          <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center">
-            <UserX size={18} className="text-gray-400" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-5 flex flex-col gap-2 sm:gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center">
+            <UserX size={16} className="text-gray-400" />
           </div>
           <div>
             <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Inativos</p>
-            <p className="text-2xl font-extrabold text-gray-500 dark:text-gray-400">{stats.inativos}</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-gray-500 dark:text-gray-400">{stats.inativos}</p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-          <div className="w-10 h-10 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center">
-            <Cake size={18} className="text-cyan-500" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 sm:p-5 flex flex-col gap-2 sm:gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-cyan-50 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center">
+            <Cake size={16} className="text-cyan-500" />
           </div>
           <div>
-            <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Aniversariantes</p>
-            <p className="text-2xl font-extrabold text-cyan-500">{stats.aniversariantes}</p>
+            <p className="text-[10px] uppercase font-extrabold text-gray-400 tracking-widest mb-0.5">Aniversário</p>
+            <p className="text-xl sm:text-2xl font-extrabold text-cyan-500">{stats.aniversariantes}</p>
           </div>
         </div>
       </div>
 
+      
       {clientes.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center py-16 gap-3">
           <Users size={48} className="text-gray-300 dark:text-gray-600" />
@@ -413,8 +474,8 @@ function ClientesContent() {
       ) : (
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
           {/* Tabs + Ordenar por */}
-          <div className="flex items-center justify-between px-6 pt-5 pb-0 border-b border-gray-100 dark:border-gray-800">
-            <div className="flex gap-1">
+          <div className="sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 dark:border-gray-800">
+            <div className="gap-1 overflow-x-auto scrollbar-none px-4 sm:px-6 pt-3 sm:pt-4">
               {tabs.map(({ key, label, count }) => (
                 <button
                   key={key}
@@ -435,7 +496,7 @@ function ClientesContent() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 pb-2">
+            <div className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-0 sm:pb-2">
               <span className="text-xs text-gray-400 hidden sm:block">Ordenar por:</span>
               <select
                 value={ordenar}
@@ -450,8 +511,70 @@ function ClientesContent() {
             </div>
           </div>
 
-          {/* Tabela */}
-          <div className="overflow-x-auto">
+          {/* Cards mobile */}
+          <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+            {paginados.map((c) => {
+              const anivInfo = aniversarioProximo(c.aniversario);
+              const inativ = inativaLabel(c.daysSinceLastPurchase);
+              return (
+                <div key={c.id} className="px-4 py-4 flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 text-sm font-bold shrink-0">
+                    {getInitials(c.nome)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.nome}</p>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${inativ.badgeClass}`}>
+                        {inativ.badge}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-400 mb-2">
+                      {c.telefone && <span className="flex items-center gap-1"><Phone size={10} /> {c.telefone}</span>}
+                      {c.email && <span className="flex items-center gap-1"><Mail size={10} /> {c.email}</span>}
+                      {anivInfo && <span className="text-cyan-500 font-medium flex items-center gap-1"><Cake size={10} /> {anivInfo.label}</span>}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {c.pendingAmount > 0 ? (
+                          <p className="text-xs font-bold text-orange-500">{formatCurrency(c.pendingAmount)} pendente</p>
+                        ) : c.lastPurchaseDate ? (
+                          <p className="text-xs text-gray-400">Última: {formatCurrency(c.lastPurchaseAmount ?? 0)}</p>
+                        ) : (
+                          <p className="text-xs text-gray-400">Sem compras</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {c.telefone && (
+                          <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
+                            className="p-1.5 text-[#075E54] dark:text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors">
+                            <MessageCircle size={15} />
+                          </a>
+                        )}
+                        <button onClick={() => setHistoricoCliente(c)}
+                          className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                          <History size={15} />
+                        </button>
+                        <button onClick={() => { setSelected(c); setModal("edit"); }}
+                          className="p-1.5 text-gray-400 hover:text-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                          <Pencil size={15} />
+                        </button>
+                        <button onClick={() => setDeleteId(c.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {paginados.length === 0 && (
+              <p className="px-6 py-10 text-sm text-gray-400 text-center">Nenhum cliente encontrado.</p>
+            )}
+          </div>
+
+          {/* Tabela desktop */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left" style={{ minWidth: 700 }}>
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-gray-400 font-bold border-b border-gray-100 dark:border-gray-800">
@@ -468,7 +591,6 @@ function ClientesContent() {
                   const inativ = inativaLabel(c.daysSinceLastPurchase);
                   return (
                     <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      {/* Cliente */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-700 dark:text-green-400 text-sm font-bold shrink-0">
@@ -494,16 +616,12 @@ function ClientesContent() {
                           </div>
                         </div>
                       </td>
-
-                      {/* Inatividade */}
                       <td className="px-4 py-4">
                         <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-lg mb-1 ${inativ.badgeClass}`}>
                           {inativ.badge}
                         </span>
                         <p className="text-[11px] text-gray-400">{inativ.subtext}</p>
                       </td>
-
-                      {/* Status Financeiro */}
                       <td className="px-4 py-4">
                         {c.pendingAmount > 0 ? (
                           <>
@@ -523,8 +641,6 @@ function ClientesContent() {
                           </>
                         )}
                       </td>
-
-                      {/* Última Compra */}
                       <td className="px-4 py-4">
                         {c.lastPurchaseDate ? (
                           <>
@@ -535,8 +651,6 @@ function ClientesContent() {
                           <p className="text-sm text-gray-400">—</p>
                         )}
                       </td>
-
-                      {/* Ações */}
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-1">
                           {c.telefone && (
@@ -618,7 +732,7 @@ function ClientesContent() {
             Adicionar Cliente
           </span>
         </button>
-      </div>
+      </div> 
     </div>
   );
 }

@@ -397,6 +397,7 @@ function exportToCsv(transactions: Transaction[]) {
 function TransacoesContent() {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [totais, setTotais] = useState<Totais | null>(null);
   const [page, setPage] = useState(1);
@@ -456,6 +457,7 @@ function TransacoesContent() {
     setTotal(json.total);
     setTotais(json.totais ?? null);
     setSelected(new Set());
+    setLoading(false);
   }, [buildParams]);
 
   useEffect(() => { load(); }, [load]);
@@ -711,6 +713,56 @@ function TransacoesContent() {
     );
   }
 
+  if (loading) return (
+  <div className="space-y-6 animate-pulse">
+    {/* Header */}
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="space-y-2">
+        <div className="h-9 w-32 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+      </div>
+      <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+    </div>
+    {/* Summary cards */}
+    <div className="flex gap-4 overflow-x-auto pb-1">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 min-w-[150px] space-y-2 shrink-0">
+          <div className="h-3 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
+          <div className="h-7 w-28 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+        </div>
+      ))}
+    </div>
+    {/* Filters */}
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4">
+      <div className="flex flex-wrap gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-9 w-24 bg-gray-100 dark:bg-gray-800 rounded-full" />
+        ))}
+      </div>
+    </div>
+    {/* Table */}
+    <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex gap-4">
+        <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-5 w-24 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
+      </div>
+      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="px-6 py-4 flex items-center gap-4">
+            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
+            </div>
+            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
+            <div className="h-6 w-16 bg-gray-100 dark:bg-gray-800 rounded-full shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
   return (
     <div className="space-y-6">
       {editTransaction && <EditModal transaction={editTransaction} categorias={categorias} onSave={() => { setEditTransaction(null); load(); }} onCancel={() => setEditTransaction(null)} />}
@@ -734,23 +786,23 @@ function TransacoesContent() {
       {/* Page header + Summary cards */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Vendas</h1>
-          <p className="text-base text-gray-400 mt-1.5">Gerencie seu fluxo de caixa com precisão.</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Vendas</h1>
+          <p className="text-sm sm:text-base text-gray-400 mt-1">Gerencie seu fluxo de caixa com precisão.</p>
         </div>
 
         {totais && (
-          <div className="grid grid-cols-3 gap-3 md:w-auto w-full">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-1.5 min-w-[150px]" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-              <p className="text-[10px] uppercase font-extrabold text-green-600 dark:text-green-400 tracking-widest">Entradas</p>
-              <p className="text-xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(totais.vendas + totais.entradas)}</p>
+          <div className="grid grid-cols-3 gap-2 md:gap-3 w-full md:w-auto">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex flex-col gap-1" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[9px] md:text-[10px] uppercase font-extrabold text-green-600 dark:text-green-400 tracking-widest">Entradas</p>
+              <p className="text-sm md:text-xl font-extrabold text-gray-800 dark:text-gray-100 tabular-nums">{formatCurrency(totais.vendas + totais.entradas)}</p>
             </div>
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-1.5 min-w-[150px]" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-              <p className="text-[10px] uppercase font-extrabold text-red-500 tracking-widest">Saídas</p>
-              <p className="text-xl font-extrabold text-gray-800 dark:text-gray-100">{formatCurrency(totais.despesas)}</p>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 md:p-5 flex flex-col gap-1" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[9px] md:text-[10px] uppercase font-extrabold text-red-500 tracking-widest">Saídas</p>
+              <p className="text-sm md:text-xl font-extrabold text-gray-800 dark:text-gray-100 tabular-nums">{formatCurrency(totais.despesas)}</p>
             </div>
-            <div className={`p-5 flex flex-col gap-1.5 min-w-[150px] border ${totais.saldo >= 0 ? "bg-green-600 border-green-600" : "bg-red-500 border-red-500"}`} style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-              <p className="text-[10px] uppercase font-extrabold text-white/80 tracking-widest">Saldo</p>
-              <p className="text-xl font-extrabold text-white">{formatCurrency(totais.saldo)}</p>
+            <div className={`p-3 md:p-5 flex flex-col gap-1 border ${totais.saldo >= 0 ? "bg-green-600 border-green-600" : "bg-red-500 border-red-500"}`} style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+              <p className="text-[9px] md:text-[10px] uppercase font-extrabold text-white/80 tracking-widest">Saldo</p>
+              <p className="text-sm md:text-xl font-extrabold text-white tabular-nums">{formatCurrency(totais.saldo)}</p>
             </div>
           </div>
         )}
@@ -778,7 +830,7 @@ function TransacoesContent() {
             <Filter size={15} />
           </button>
 
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
             <button onClick={() => setCompacto((v) => !v)} title={compacto ? "Modo normal" : "Modo compacto"}
               className={`p-2 rounded-xl border transition-colors ${compacto ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}>
               <AlignJustify size={15} />
@@ -786,27 +838,28 @@ function TransacoesContent() {
             <select
               value={agrupar}
               onChange={(e) => setAgrupar(e.target.value as "" | "dia" | "mes")}
-              className={`px-3 py-2 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 ${agrupar ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"}`}
+              className={`px-2 py-2 rounded-xl border text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 max-w-[120px] sm:max-w-none ${agrupar ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"}`}
             >
-              <option value="">Sem agrupamento</option>
-              <option value="dia">Agrupar por dia</option>
-              <option value="mes">Agrupar por mês</option>
+              <option value="">Agrupar</option>
+              <option value="dia">Por dia</option>
+              <option value="mes">Por mês</option>
             </select>
             <button onClick={handleExport} disabled={exporting}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:border-green-400 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:border-green-400 transition-colors disabled:opacity-50">
               <Download size={15} />
-              {exporting ? "Exportando..." : "Exportar CSV"}
+              <span className="hidden sm:inline">{exporting ? "Exportando..." : "Exportar CSV"}</span>
+              <span className="sm:hidden">CSV</span>
             </button>
           </div>
         </div>
 
         {/* Filtros expandidos */}
         {showFilters && (
-          <div className="flex flex-wrap gap-3 pt-1 border-t border-gray-200 dark:border-gray-700">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:flex xl:flex-wrap gap-3 pt-1 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</label>
               <select value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(1); }}
-                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="">Todos os tipos</option>
                 <option value="venda">Venda</option>
                 <option value="despesa">Despesa</option>
@@ -814,50 +867,48 @@ function TransacoesContent() {
                 <option value="saida">Saída</option>
               </select>
             </div>
-            <div>
+            <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
               <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="">Todos status</option>
                 <option value="pago">Pago</option>
                 <option value="pendente">Pendente</option>
               </select>
             </div>
-            <div className="flex gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
-                <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
-                <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
-              </div>
+            <div className="flex flex-col">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
+              <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
-            <div>
+            <div className="flex flex-col">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
+              <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+            </div>
+            <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Categoria</label>
               <select value={categoria} onChange={(e) => { setCategoria(e.target.value); setPage(1); }}
-                className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="">Todas as categorias</option>
                 {categorias.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
             </div>
             {clientes.length > 0 && (
-              <div>
+              <div className="flex flex-col">
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Cliente</label>
                 <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setPage(1); }}
-                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="">Todos</option>
                   {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
             )}
             {fornecedores.length > 0 && (
-              <div>
+              <div className="flex flex-col">
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fornecedor</label>
                 <select value={fornecedorId} onChange={(e) => { setFornecedorId(e.target.value); setPage(1); }}
-                  className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="">Todos</option>
                   {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                 </select>
