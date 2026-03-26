@@ -96,6 +96,8 @@ function NovaVendaContent() {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
     fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
+    const clienteIdParam = searchParams.get("clienteId");
+    if (clienteIdParam) setForm((prev) => ({ ...prev, clienteId: clienteIdParam }));
   }, []);
 
   useEffect(() => {

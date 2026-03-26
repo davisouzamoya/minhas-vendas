@@ -9,12 +9,14 @@ function PerfilContent() {
   const searchParams = useSearchParams();
   const onboarding = searchParams.get("onboarding") === "1";
   const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "", metaMensal: "" });
+  const [loadingData, setLoadingData] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
       if (d) setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: d.metaMensal ? String(d.metaMensal) : "" });
+      setLoadingData(false);
     });
   }, []);
 
@@ -38,6 +40,36 @@ function PerfilContent() {
   }
 
   const meta = parseFloat(form.metaMensal) || 0;
+
+  if (loadingData) return (
+    <div className="space-y-8 pb-8 animate-pulse">
+      <div className="hidden sm:block space-y-2">
+        <div className="h-10 w-52 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-4 w-72 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+      </div>
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800" />
+            <div className="space-y-1.5">
+              <div className="h-3.5 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-56 bg-gray-100 dark:bg-gray-800 rounded" />
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+            <div className="h-16 w-full bg-gray-100 dark:bg-gray-800 rounded-2xl" />
+            <div className="space-y-1.5">
+              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-10 w-full bg-gray-100 dark:bg-gray-800 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="flex justify-end">
+        <div className="h-10 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+      </div>
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 pb-8">

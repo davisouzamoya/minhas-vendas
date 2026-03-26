@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 
 function maskPhone(value: string) {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -170,7 +170,7 @@ function HistoricoModal({ cliente, onClose }: { cliente: Cliente; onClose: () =>
 
 function ClienteModal({ cliente, onSave, onCancel }: {
   cliente?: Cliente;
-  onSave: () => void;
+  onSave: (novoCliente?: { id: number; nome: string }) => void;
   onCancel: () => void;
 }) {
   const [form, setForm] = useState({
@@ -185,7 +185,7 @@ function ClienteModal({ cliente, onSave, onCancel }: {
     e.preventDefault();
     setSaving(true);
     const url = cliente ? `/api/clientes/${cliente.id}` : "/api/clientes";
-    await fetch(url, {
+    const res = await fetch(url, {
       method: cliente ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -195,8 +195,9 @@ function ClienteModal({ cliente, onSave, onCancel }: {
         aniversario: form.aniversario || null,
       }),
     });
+    const data = await res.json();
     setSaving(false);
-    onSave();
+    onSave(!cliente && data?.id ? { id: data.id, nome: data.nome ?? form.nome } : undefined);
   }
 
   return (
@@ -276,6 +277,7 @@ function ClientesContent() {
   const searchParams = useSearchParams();
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
   const [loading, setLoading] = useState(true);
+  const [novaVendaCliente, setNovaVendaCliente] = useState<{ id: number; nome: string } | null>(null);
   const onboarding = searchParams.get("onboarding") === "1";
   const router = useRouter();
 
@@ -397,13 +399,37 @@ function ClientesContent() {
       {(modal === "new" || modal === "edit") && (
         <ClienteModal
           cliente={modal === "edit" ? selected ?? undefined : undefined}
-          onSave={() => {
+          onSave={(novoCliente) => {
             setModal(null);
             load();
-            if (modal === "new" && onboarding) router.push("/dashboard");
+            if (modal === "new" && onboarding) { router.push("/dashboard"); return; }
+            if (novoCliente) setNovaVendaCliente(novoCliente);
           }}
           onCancel={() => setModal(null)}
         />
+      )}
+      {novaVendaCliente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 w-full max-w-sm shadow-xl">
+            <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <ShoppingCart size={22} className="text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Cliente criado!</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              Deseja cadastrar uma nova venda para <span className="font-semibold text-gray-800 dark:text-gray-200">{novaVendaCliente.nome}</span>?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setNovaVendaCliente(null)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                Agora não
+              </button>
+              <button onClick={() => router.push(`/nova?clienteId=${novaVendaCliente.id}`)}
+                className="px-4 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors">
+                Sim, cadastrar venda
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {deleteId && <ConfirmModal onConfirm={handleDelete} onCancel={() => setDeleteId(null)} />}
       {historicoCliente && <HistoricoModal cliente={historicoCliente} onClose={() => setHistoricoCliente(null)} />}
@@ -544,6 +570,10 @@ function ClientesContent() {
                         )}
                       </div>
                       <div className="flex items-center gap-1">
+                        <button onClick={() => router.push(`/nova?clienteId=${c.id}`)}
+                          className="p-1.5 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors" title="Nova venda">
+                          <ShoppingCart size={15} />
+                        </button>
                         {c.telefone && (
                           <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
                             className="p-1.5 text-[#075E54] dark:text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors">
@@ -653,6 +683,10 @@ function ClientesContent() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => router.push(`/nova?clienteId=${c.id}`)}
+                            className="p-1.5 text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors" title="Nova venda">
+                            <ShoppingCart size={15} />
+                          </button>
                           {c.telefone && (
                             <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
                               className="p-1.5 text-[#075E54] dark:text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors" title="WhatsApp">
