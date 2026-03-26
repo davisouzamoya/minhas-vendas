@@ -110,15 +110,6 @@ function SidebarContent({
               <X size={18} />
             </button>
           )}
-          {onDesktopClose && (
-            <button
-              onClick={onDesktopClose}
-              className="hidden lg:flex text-green-800 dark:text-gray-400 hover:text-green-950 dark:hover:text-gray-200 transition-colors p-1"
-              title="Fechar menu"
-            >
-              <PanelLeftClose size={18} />
-            </button>
-          )}
         </div>
       </div>
 
