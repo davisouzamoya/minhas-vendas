@@ -810,35 +810,35 @@ function TransacoesContent() {
 
       {/* Filter bar */}
       <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Period shortcuts */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          {/* Períodos + filtro + list */}
           <div className="flex items-center gap-2 flex-wrap">
             {(["hoje", "semana", "mes", "ano"] as const).map((p) => {
               const labels = { hoje: "Hoje", semana: "Semana", mes: "Mês", ano: "Ano" };
               return (
                 <button key={p} onClick={() => { if (periodoRapido === p) { setPeriodoRapido(""); setDataInicio(""); setDataFim(""); setPage(1); } else { aplicarPeriodo(p); } }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors ${periodoRapido === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:border-green-400"}`}>
+                  className={`px-2 py-1.5 text-xs font-semibold rounded-xl border transition-colors ${periodoRapido === p ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:border-green-400"}`}>
                   {labels[p]}
                 </button>
               );
             })}
-          </div>
-
-          <button onClick={() => setShowFilters((v) => !v)}
-            className={`p-2 rounded-xl border transition-colors ${showFilters ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}
-            title="Mais filtros">
-            <Filter size={15} />
-          </button>
-
-          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            <button onClick={() => setShowFilters((v) => !v)}
+              className={`p-1 rounded-xl border transition-colors ${showFilters ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}
+              title="Mais filtros">
+              <Filter size={15} />
+            </button>
             <button onClick={() => setCompacto((v) => !v)} title={compacto ? "Modo normal" : "Modo compacto"}
-              className={`p-2 rounded-xl border transition-colors ${compacto ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}>
+              className={`p-1 rounded-xl border transition-colors ${compacto ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-500 hover:border-green-400"}`}>
               <AlignJustify size={15} />
             </button>
+          </div>
+
+          {/* Agrupar + CSV */}
+          <div className="flex items-center gap-2 sm:ml-auto">
             <select
               value={agrupar}
               onChange={(e) => setAgrupar(e.target.value as "" | "dia" | "mes")}
-              className={`px-2 py-2 rounded-xl border text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 max-w-[120px] sm:max-w-none ${agrupar ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"}`}
+              className={`px-2 py-2 rounded-xl border text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 ${agrupar ? "bg-green-600 border-green-600 text-white" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400"}`}
             >
               <option value="">Agrupar</option>
               <option value="dia">Por dia</option>
@@ -859,7 +859,7 @@ function TransacoesContent() {
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</label>
               <select value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(1); }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 <option value="">Todos os tipos</option>
                 <option value="venda">Venda</option>
                 <option value="despesa">Despesa</option>

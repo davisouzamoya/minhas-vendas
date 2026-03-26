@@ -15,8 +15,6 @@ import {
   Activity,
   X,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
   LogOut,
   Users,
   Building2,
@@ -185,10 +183,8 @@ function SidebarContent({
   );
 }
 
-function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
+function AppHeader({ onMobileMenuOpen }: {
   onMobileMenuOpen: () => void;
-  desktopOpen: boolean;
-  onDesktopOpen: () => void;
 }) {
   const router = useRouter();
   const [nomeNegocio, setNomeNegocio] = useState("");
@@ -271,7 +267,7 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4 lg:left-0">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
       {/* Mobile: hamburger */}
       <button
         onClick={onMobileMenuOpen}
@@ -280,16 +276,6 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
         <Menu size={22} />
       </button>
 
-      {/* Desktop: abrir sidebar quando fechada */}
-      {!desktopOpen && (
-        <button
-          onClick={onDesktopOpen}
-          className="hidden lg:flex text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors shrink-0"
-          title="Abrir menu"
-        >
-          <PanelLeftOpen size={22} />
-        </button>
-      )}
 
       {/* Mobile: logo */}
       <div className="flex items-center gap-2 lg:hidden">
@@ -368,7 +354,6 @@ function AppHeader({ onMobileMenuOpen, desktopOpen, onDesktopOpen }: {
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [desktopOpen, setDesktopOpen] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -383,13 +368,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden">
-      {/* Sidebar desktop */}
-      <aside
-        className={`hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30 transition-transform duration-300 ${
-          desktopOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <SidebarContent onDesktopClose={() => setDesktopOpen(false)} />
+      {/* Sidebar desktop — sempre visível e fixo */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30">
+        <SidebarContent />
       </aside>
 
       {/* Sidebar mobile overlay */}
@@ -407,12 +388,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ${desktopOpen ? "lg:ml-64" : "lg:ml-0"}`}>
-        <AppHeader
-          onMobileMenuOpen={() => setMobileOpen(true)}
-          desktopOpen={desktopOpen}
-          onDesktopOpen={() => setDesktopOpen(true)}
-        />
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
+        <AppHeader onMobileMenuOpen={() => setMobileOpen(true)} />
         <main className="flex-1 p-5 sm:p-6 lg:p-8 pt-[calc(4rem+1.25rem)] sm:pt-[calc(4rem+1.5rem)] lg:pt-[calc(4rem+2rem)]">
           {children}
         </main>
