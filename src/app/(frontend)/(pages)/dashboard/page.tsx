@@ -245,7 +245,7 @@ function DashboardContent() {
         <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">
           Boas-vindas, {primeiroNome}!
         </h1>
-        <p className="text-sm text-gray-400 mt-1">Aqui está o resumo financeiro do seu negócio hoje.</p>
+        <p className="hidden sm:block text-sm text-gray-400 mt-1">Aqui está o resumo financeiro do seu negócio hoje.</p>
       </div>
 
       {/* Stat Cards */}
