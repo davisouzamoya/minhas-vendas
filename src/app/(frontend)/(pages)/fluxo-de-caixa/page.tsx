@@ -222,7 +222,7 @@ function FluxoDeCaixaContent() {
       </div>
 
       {/* Filtros */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col sm:flex-row gap-4 items-end">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col sm:flex-row gap-4">
         <div className="flex gap-2">
           {(["mes", "semana"] as const).map((p) => (
             <button key={p} onClick={() => setPeriodo(p)}

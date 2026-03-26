@@ -269,7 +269,7 @@ function NovaVendaContent() {
       )}
 
       {/* Type Selector — Bento cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
         {TIPOS.map((t) => {
           const cfg = TIPO_CONFIG[t];
           const Icon = cfg.icon;
@@ -279,18 +279,18 @@ function NovaVendaContent() {
               key={t}
               type="button"
               onClick={() => set("tipo", t)}
-              className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-1.5 sm:gap-3 p-3 sm:p-6 rounded-xl border-2 transition-all ${
                 active
                   ? "border-green-600 bg-white dark:bg-gray-900 shadow-sm scale-105"
                   : "border-transparent bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
             >
               <Icon
-                size={28}
+                size={22}
                 className={active ? "text-green-600" : "text-gray-400"}
                 strokeWidth={active ? 2.5 : 1.5}
               />
-              <span className={`text-sm font-bold ${active ? "text-green-600" : "text-gray-500"}`}>
+              <span className={`text-xs sm:text-sm font-bold ${active ? "text-green-600" : "text-gray-500"}`}>
                 {cfg.label}
               </span>
             </button>
@@ -301,7 +301,7 @@ function NovaVendaContent() {
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* Section: Informações Gerais */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
           <h3 className="text-base font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
             <ShoppingCart size={18} />
             Informações Gerais
@@ -424,16 +424,16 @@ function NovaVendaContent() {
         </div>
 
         {/* Section: Valores + Foto (bento row) */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
 
           {/* Valores e Quantidade (2/3) */}
-          <div className="col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
             <h3 className="text-base font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
               <Receipt size={18} />
               Valores e Quantidade
             </h3>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Quantidade</label>
                 <input
@@ -443,7 +443,7 @@ function NovaVendaContent() {
                   placeholder="0"
                   min="0"
                   step="0.01"
-                  className={inputCls + " text-center font-bold"}
+                  className={inputCls}
                 />
               </div>
               <div className="space-y-1">
@@ -464,7 +464,7 @@ function NovaVendaContent() {
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Valor Total *</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600 text-xs font-extrabold">R$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
                     type="number"
                     value={form.valor_total}
@@ -473,7 +473,7 @@ function NovaVendaContent() {
                     min="0"
                     step="0.01"
                     required
-                    className="w-full pl-9 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-extrabold text-green-700 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                    className={inputCls + " pl-9 font-bold"}
                   />
                 </div>
               </div>
@@ -481,7 +481,7 @@ function NovaVendaContent() {
 
             {/* Status (venda only) — toggle buttons */}
             {form.tipo === "venda" && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Status do Pagamento</label>
                   <div className="flex gap-2">
@@ -571,7 +571,7 @@ function NovaVendaContent() {
 
           {/* Foto do produto (1/3) */}
           <div
-            className="bg-white dark:bg-gray-900 p-6 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center"
+            className="lg:col-span-1 bg-white dark:bg-gray-900 p-6 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center"
             style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
           >
             {fotoPreview ? (
@@ -622,8 +622,8 @@ function NovaVendaContent() {
         </div>
 
         {/* Section: Detalhes Adicionais */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
-          <div className="grid grid-cols-2 gap-8">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-8" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Data da Venda *</label>
@@ -663,18 +663,18 @@ function NovaVendaContent() {
         </div>
 
         {/* Action footer */}
-        <div className="flex items-center justify-end gap-6 pt-2">
+        <div className="flex items-center justify-end gap-3 sm:gap-6 pt-2">
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-gray-500 font-bold hover:text-red-500 transition-colors px-6"
+            className="text-gray-500 font-bold hover:text-red-500 transition-colors px-4"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading || uploadingFoto}
-            className="bg-green-600 hover:bg-green-700 text-white py-4 px-12 rounded-full font-extrabold text-base flex items-center gap-3 shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+            className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 sm:py-4 sm:px-12 rounded-full font-extrabold text-sm sm:text-base flex items-center gap-2 sm:gap-3 shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
           >
             {loading ? "Salvando..." : uploadingFoto ? "Aguardando upload..." : "Salvar Venda"}
             {!loading && !uploadingFoto && <CheckCircle size={20} />}
