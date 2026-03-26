@@ -105,7 +105,7 @@ function NovaVendaContent() {
         .then((r) => r.ok ? r.json() : null)
         .then((d) => {
           const t = d?.transactions?.[0];
-          if (t && (t.produto || t.valorTotal)) {
+          if (t && (t.produto || t.valorTotal) && String(t.clienteId) === clienteIdParam) {
             setUltimaCompra({
               produto: t.produto ?? null,
               categoria: t.categoria ?? null,
