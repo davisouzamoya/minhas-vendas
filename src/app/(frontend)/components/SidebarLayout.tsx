@@ -268,12 +268,18 @@ function AppHeader({ onMobileMenuOpen }: {
       </button>
 
 
-      {/* Mobile: logo */}
+      {/* Mobile: logo ou título da página */}
       <div className="flex items-center gap-2 lg:hidden">
-        <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
-          <TrendingUp size={13} className="text-white" />
-        </div>
-        <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
+        {pathname.startsWith("/fluxo-de-caixa") ? (
+          <span className="font-bold text-gray-900 dark:text-white text-base">Fluxo de Caixa</span>
+        ) : (
+          <>
+            <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
+              <TrendingUp size={13} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
+          </>
+        )}
       </div>
 
       {/* Search — desktop only, visível em clientes e fornecedores */}
