@@ -48,9 +48,12 @@ const tipoLabel: Record<string, string> = { venda: "Venda", despesa: "Despesa", 
 
 function formatCurrency(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 function formatDate(d: string) { return new Date(d).toLocaleDateString("pt-BR"); }
+function parseLocalDate(d: string) {
+  const [year, month, day] = d.split("T")[0].split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
 function formatDateBr(d: string) {
-  const dt = new Date(d);
-  return dt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return parseLocalDate(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 function formatDateTime(d: string) {
   const dt = new Date(d);
@@ -67,7 +70,7 @@ function getInitials(nome: string) {
 function aniversarioProximo(aniversario: string | null): { label: string; dias: number } | null {
   if (!aniversario) return null;
   const hoje = new Date();
-  const aniv = new Date(aniversario);
+  const aniv = parseLocalDate(aniversario);
   const proxAniv = new Date(hoje.getFullYear(), aniv.getMonth(), aniv.getDate());
   if (proxAniv < hoje) proxAniv.setFullYear(proxAniv.getFullYear() + 1);
   const dias = Math.round((proxAniv.getTime() - hoje.getTime()) / 86400000);
