@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { TrendingUp, TrendingDown, Wallet, Download, Star, AlertTriangle, ShoppingBag, Receipt } from "lucide-react";
+import { DateInput } from "@/app/(frontend)/components/DateInput";
 
 interface FluxoRow {
   label: string;
@@ -233,12 +234,12 @@ function FluxoDeCaixaContent() {
         <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto">
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Início</label>
-            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
+            <DateInput value={dataInicio} onChange={setDataInicio}
               className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Fim</label>
-            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
+            <DateInput value={dataFim} onChange={setDataFim}
               className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { DateInput } from "@/app/(frontend)/components/DateInput";
 
 function maskPhone(value: string) {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -231,7 +232,7 @@ function ClienteModal({ cliente, onSave, onCancel }: {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <span className="flex items-center gap-1.5"><Cake size={13} /> Aniversário</span>
             </label>
-            <input type="date" value={form.aniversario} onChange={(e) => setForm({ ...form, aniversario: e.target.value })}
+            <DateInput value={form.aniversario} onChange={(v) => setForm({ ...form, aniversario: v })}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             <p className="text-xs text-gray-400 mt-1">Você receberá um aviso no dashboard 7 dias antes</p>
           </div>

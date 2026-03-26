@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { DateInput } from "@/app/(frontend)/components/DateInput";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -269,7 +270,7 @@ function EditModal({ transaction, categorias, onSave, onCancel }: { transaction:
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data *</label>
-              <input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} required className={inputCls} />
+              <DateInput value={form.data} onChange={(v) => set("data", v)} required className={inputCls} />
             </div>
           </div>
           <div>
@@ -878,13 +879,13 @@ function TransacoesContent() {
             </div>
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data início</label>
-              <input type="date" value={dataInicio} onChange={(e) => { setDataInicio(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></input>
+              <DateInput value={dataInicio} onChange={(v) => { setDataInicio(v); setPeriodoRapido(""); setPage(1); }}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Data fim</label>
-              <input type="date" value={dataFim} onChange={(e) => { setDataFim(e.target.value); setPeriodoRapido(""); setPage(1); }}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"></input>
+              <DateInput value={dataFim} onChange={(v) => { setDataFim(v); setPeriodoRapido(""); setPage(1); }}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Categoria</label>

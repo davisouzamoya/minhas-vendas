@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { DateInput } from "@/app/(frontend)/components/DateInput";
 import {
   CheckCircle,
   X,
@@ -659,10 +660,9 @@ function NovaVendaContent() {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Data da Venda *</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.data}
-                  onChange={(e) => set("data", e.target.value)}
+                  onChange={(v) => set("data", v)}
                   required
                   className={inputCls}
                 />

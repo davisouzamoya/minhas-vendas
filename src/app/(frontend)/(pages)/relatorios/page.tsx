@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Printer, AlertTriangle, CheckCircle2, MessageCircle, TrendingUp, TrendingDown, ArrowDownCircle, CreditCard } from "lucide-react";
+import { DateInput } from "@/app/(frontend)/components/DateInput";
 
 interface ReportData {
   porCategoria: { categoria: string; total: number }[];
@@ -318,12 +319,12 @@ function RelatoriosContent() {
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <div className="w-full sm:flex-1">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Início</label>
-            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
+            <DateInput value={dataInicio} onChange={setDataInicio}
               className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div className="w-full sm:flex-1">
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fim</label>
-            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
+            <DateInput value={dataFim} onChange={setDataFim}
               className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           {(dataInicio || dataFim) && (
