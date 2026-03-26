@@ -183,7 +183,7 @@ function FluxoDeCaixaContent() {
           className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 border-t-green-600 p-7 flex flex-col justify-between shadow-sm"
           style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
         >
-          <div className="">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${saldoFinal >= 0 ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400" : "bg-red-50 dark:bg-red-900/30 text-red-500"}`}>
             <TrendingUp size={22} />
           </div>
           <div>
@@ -233,14 +233,14 @@ function FluxoDeCaixaContent() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Início</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Início</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)}
-              className="w-full sm:w-44 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Fim</label>
             <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)}
-              className="w-full sm:w-44 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+              className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
         </div>
       </div>
