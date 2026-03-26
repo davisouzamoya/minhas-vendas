@@ -35,7 +35,7 @@ export default function LandingPage() {
       >
         <div className="flex justify-between items-center max-w-7xl mx-auto px-6 py-4">
           <span className="font-headline text-xl font-bold tracking-tighter" style={{ color: "#6bff8f" }}>
-            Minhas Vendas
+            VendaPro
           </span>
           <div className="hidden md:flex items-center gap-8">
             <a href="#funcionalidades" className="font-headline text-sm tracking-tight transition-colors" style={{ color: "#6bff8f", borderBottom: "2px solid #6bff8f", paddingBottom: "4px" }}>
@@ -84,7 +84,7 @@ export default function LandingPage() {
                 <span style={{ color: "#6bff8f" }}>simples</span> e no bolso
               </h1>
               <p className="text-lg lg:text-xl mb-10 max-w-xl leading-relaxed" style={{ color: "#a3aac4" }}>
-                Abandone o papel de vez. Gerencie suas vendas, controle clientes e visualize seu lucro real em segundos, direto pelo celular.
+                Pare de anotar no caderno ou no WhatsApp. Organize suas vendas de forma simples e profissional.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 Funciona como App, mas sem ocupar espaço
               </h2>
               <p className="text-lg mb-8 leading-relaxed" style={{ color: "#a3aac4" }}>
-                Nossa tecnologia permite que você instale o Minhas Vendas direto da web. É leve, funciona offline para consultas básicas e é compatível com qualquer celular moderno.
+                Nossa tecnologia permite que você instale o VendaPro direto da web. É leve, funciona offline para consultas básicas e é compatível com qualquer celular moderno.
               </p>
               <ul className="space-y-4">
                 {["Instalação instantânea", "Não consome memória do aparelho", "Atualizações automáticas"].map((item) => (
@@ -294,7 +294,7 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center">
             <Quote size={64} className="mx-auto mb-8 opacity-20" style={{ color: "#6bff8f" }} />
             <p className="font-headline text-2xl lg:text-3xl italic mb-12 leading-relaxed" style={{ color: "#dee5ff" }}>
-              "Antes eu perdia horas tentando entender quanto tinha sobrado no fim do mês. Com o Minhas Vendas, registro tudo na hora e o app faz o cálculo pra mim. Facilitou demais minha produção artesanal."
+              "Antes eu perdia horas tentando entender quanto tinha sobrado no fim do mês. Com o VendaPro, registro tudo na hora e o app faz o cálculo pra mim. Facilitou demais minha produção artesanal."
             </p>
             <div className="flex flex-col items-center">
               <div
@@ -427,7 +427,7 @@ export default function LandingPage() {
       <footer style={{ backgroundColor: "#091328", borderTop: "1px solid #192540" }}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto px-8 py-12">
           <div className="col-span-1">
-            <div className="text-lg font-bold mb-4" style={{ color: "#dee5ff" }}>Minhas Vendas</div>
+            <div className="text-lg font-bold mb-4" style={{ color: "#dee5ff" }}>VendaPro</div>
             <p className="text-xs leading-relaxed" style={{ color: "#a3aac4" }}>
               Simplificando a vida do microempreendedor brasileiro com tecnologia de ponta e interface intuitiva.
             </p>
@@ -455,7 +455,7 @@ export default function LandingPage() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-8 pb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs" style={{ color: "#a3aac4" }}>© 2025 Minhas Vendas. Todos os direitos reservados.</p>
+          <p className="text-xs" style={{ color: "#a3aac4" }}>© 2025 VendaPro. Todos os direitos reservados.</p>
           <div className="flex gap-3">
             <a
               href="#"

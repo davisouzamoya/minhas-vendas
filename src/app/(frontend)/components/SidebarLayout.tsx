@@ -97,7 +97,7 @@ function SidebarContent({
         <div className="flex items-center gap-2.5">
           <div>
             <p className="font-bold text-green-950 dark:text-white text-base leading-tight tracking-tight truncate max-w-[160px]">
-              {nomeNegocio || "Minhas Vendas"}
+              {nomeNegocio || "VendaPro"}
             </p>
             <p className="text-[10px] uppercase tracking-widest text-green-700 dark:text-green-400 font-medium opacity-70">
               Gestão Digital
@@ -287,7 +287,7 @@ function AppHeader({ onMobileMenuOpen }: {
               <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
                 <TrendingUp size={13} className="text-white" />
               </div>
-              <span className="font-bold text-gray-900 dark:text-white text-base">Minhas Vendas</span>
+              <span className="font-bold text-gray-900 dark:text-white text-base">VendaPro</span>
             </>
           );
         })()}

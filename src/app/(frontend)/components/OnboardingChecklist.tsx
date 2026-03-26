@@ -78,7 +78,7 @@ export default function OnboardingChecklist({ passos, onComplete }: Props) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="text-base font-bold text-gray-900 dark:text-white">
-            Boas-vindas ao Minhas Vendas! 👋
+            Boas-vindas ao VendaPro! 👋
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {concluidos === 0

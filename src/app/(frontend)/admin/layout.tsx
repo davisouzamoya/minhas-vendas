@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-2 shrink-0">
           <ShieldCheck size={18} className="text-green-500" />
           <span className="font-bold text-white">Admin</span>
-          <span className="text-gray-600 text-xs">· Minhas Vendas</span>
+          <span className="text-gray-600 text-xs">· VendaPro</span>
         </div>
 
         <nav className="flex items-center gap-1">

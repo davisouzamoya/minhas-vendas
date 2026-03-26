@@ -10,13 +10,13 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Minhas Vendas",
-  description: "Controle financeiro de vendas",
+  title: "VendaPro",
+  description: "Pare de anotar no caderno ou no WhatsApp. Organize suas vendas de forma simples e profissional.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Minhas Vendas",
+    title: "VendaPro",
   },
 };
 
