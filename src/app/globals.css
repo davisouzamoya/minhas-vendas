@@ -15,3 +15,13 @@ body {
 html {
   overflow-x: hidden;
 }
+
+/* iOS Safari: alinha o valor do input de data à esquerda */
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* iOS Safari: garante que o input de data não fique menor que o conteúdo */
+input[type="date"] {
+  min-height: 1.5rem;
+}
