@@ -855,7 +855,7 @@ function TransacoesContent() {
 
         {/* Filtros expandidos */}
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:flex xl:flex-wrap gap-3 pt-1 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pt-1 border-t border-gray-200 dark:border-gray-700">
             <div className="flex flex-col">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tipo</label>
               <select value={tipo} onChange={(e) => { setTipo(e.target.value); setPage(1); }}
