@@ -4,36 +4,17 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Settings, Target, Store, Image } from "lucide-react";
 
-function parseBRLInput(value: string): number {
-  // Remove pontos de milhar, troca vírgula decimal por ponto
-  const cleaned = value.replace(/\./g, "").replace(",", ".");
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
-}
-
-function formatBRL(value: number): string {
-  if (!value) return "";
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
 function PerfilContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onboarding = searchParams.get("onboarding") === "1";
   const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "", metaMensal: "" });
-  const [metaDisplay, setMetaDisplay] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (d) {
-        const meta = d.metaMensal ? String(d.metaMensal) : "";
-        setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: meta });
-        if (d.metaMensal) {
-          setMetaDisplay(formatBRL(parseFloat(meta)));
-        }
-      }
+      if (d) setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: d.metaMensal ? String(d.metaMensal) : "" });
     });
   }, []);
 
@@ -156,21 +137,12 @@ function PerfilContent() {
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">R$</span>
               <input
-                type="text"
-                inputMode="decimal"
-                value={metaDisplay}
-                onChange={(e) => setMetaDisplay(e.target.value)}
-                onBlur={() => {
-                  const num = parseBRLInput(metaDisplay);
-                  setMetaDisplay(num ? formatBRL(num) : "");
-                  setForm({ ...form, metaMensal: num ? String(num) : "" });
-                }}
-                onFocus={() => {
-                  // Mostra o número limpo para edição
-                  const num = parseBRLInput(metaDisplay);
-                  setMetaDisplay(num ? String(num) : "");
-                }}
-                placeholder="Ex: 27000"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.metaMensal}
+                onChange={(e) => setForm({ ...form, metaMensal: e.target.value })}
+                placeholder="0,00"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all"
               />
             </div>
