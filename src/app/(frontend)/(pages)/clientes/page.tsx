@@ -18,6 +18,7 @@ interface Cliente {
   telefone: string | null;
   email: string | null;
   aniversario: string | null;
+  ativo: boolean;
   createdAt: string;
   lastPurchaseDate: string | null;
   lastPurchaseAmount: number | null;
@@ -71,10 +72,11 @@ function getInitials(nome: string) {
 function aniversarioProximo(aniversario: string | null): { label: string; dias: number } | null {
   if (!aniversario) return null;
   const hoje = new Date();
+  const hojeInicio = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const aniv = parseLocalDate(aniversario);
   const proxAniv = new Date(hoje.getFullYear(), aniv.getMonth(), aniv.getDate());
-  if (proxAniv < hoje) proxAniv.setFullYear(proxAniv.getFullYear() + 1);
-  const dias = Math.round((proxAniv.getTime() - hoje.getTime()) / 86400000);
+  if (proxAniv < hojeInicio) proxAniv.setFullYear(proxAniv.getFullYear() + 1);
+  const dias = Math.round((proxAniv.getTime() - hojeInicio.getTime()) / 86400000);
   if (dias > 30) return null;
   if (dias === 0) return { label: "Hoje!", dias: 0 };
   if (dias === 1) return { label: "Amanhã", dias: 1 };
@@ -182,6 +184,7 @@ function ClienteModal({ cliente, onSave, onCancel }: {
     telefone: cliente?.telefone ?? "",
     email: cliente?.email ?? "",
     aniversario: cliente?.aniversario ? cliente.aniversario.split("T")[0] : "",
+    ativo: cliente?.ativo ?? true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -197,6 +200,7 @@ function ClienteModal({ cliente, onSave, onCancel }: {
         telefone: form.telefone || null,
         email: form.email || null,
         aniversario: form.aniversario || null,
+        ativo: form.ativo,
       }),
     });
     const data = await res.json();
@@ -236,6 +240,20 @@ function ClienteModal({ cliente, onSave, onCancel }: {
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             <p className="text-xs text-gray-400 mt-1">Você receberá um aviso no dashboard 7 dias antes</p>
           </div>
+          {cliente && (
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ativo: !form.ativo })}
+              className="flex items-center gap-3 w-full"
+            >
+              <div className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.ativo ? "bg-green-600" : "bg-gray-300 dark:bg-gray-600"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.ativo ? "translate-x-5" : "translate-x-0"}`} />
+              </div>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {form.ativo ? "Cliente ativo" : "Cliente inativo"}
+              </span>
+            </button>
+          )}
           <div className="flex gap-3 justify-end pt-1">
             <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               Cancelar
@@ -282,6 +300,7 @@ function ClientesContent() {
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
   const [loading, setLoading] = useState(true);
   const [novaVendaCliente, setNovaVendaCliente] = useState<{ id: number; nome: string } | null>(null);
+  const [nomeNegocio, setNomeNegocio] = useState("");
   const onboarding = searchParams.get("onboarding") === "1";
   const router = useRouter();
 
@@ -292,7 +311,26 @@ function ClientesContent() {
     if (!res.ok) return;
     setClientes(await res.json());
     fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => { if (d) setStats(d); });
+    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => { if (d?.nomeNegocio) setNomeNegocio(d.nomeNegocio); });
     setLoading(false);
+  }
+
+  function whatsappHref(cliente: Cliente): string {
+    const tel = `55${cliente.telefone!.replace(/\D/g, "")}`;
+    const anivInfo = aniversarioProximo(cliente.aniversario);
+    if (anivInfo && anivInfo.dias === 0) {
+      const loja = nomeNegocio || "nossa loja";
+      const msg = [
+        `Feliz aniversario, ${cliente.nome}! 🎂`,
+        ``,
+        `Que seu dia seja repleto de alegria e realizacoes!`,
+        ``,
+        `Com carinho,`,
+        loja,
+      ].join("\n");
+      return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+    }
+    return `https://wa.me/${tel}`;
   }
 
   useEffect(() => { load(); }, []);
@@ -315,7 +353,7 @@ function ClientesContent() {
   const porTab = porBusca.filter((c) => {
     if (tab === "devedores") return c.pendingAmount > 0;
     if (tab === "novos") return c.isNew;
-    if (tab === "inativos") return (c.daysSinceLastPurchase ?? 999) >= 60;
+    if (tab === "inativos") return !c.ativo;
     return true;
   });
 
@@ -553,7 +591,14 @@ function ClientesContent() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.nome}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{c.nome}</p>
+                        {!c.ativo && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                            Inativo
+                          </span>
+                        )}
+                      </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 ${inativ.badgeClass}`}>
                         {inativ.badge}
                       </span>
@@ -579,7 +624,7 @@ function ClientesContent() {
                           <ShoppingCart size={15} />
                         </button>
                         {c.telefone && (
-                          <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
+                          <a href={whatsappHref(c)} target="_blank" rel="noreferrer"
                             className="p-1.5 text-[#075E54] dark:text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors">
                             <MessageCircle size={15} />
                           </a>
@@ -631,7 +676,14 @@ function ClientesContent() {
                             {getInitials(c.nome)}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-gray-900 dark:text-white">{c.nome}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">{c.nome}</p>
+                              {!c.ativo && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                  Inativo
+                                </span>
+                              )}
+                            </div>
                             {anivInfo?.dias === 0 ? (
                               <p className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold flex items-center gap-1">
                                 <Cake size={11} /> Faz aniversário hoje! 🎂
@@ -692,7 +744,7 @@ function ClientesContent() {
                             <ShoppingCart size={15} />
                           </button>
                           {c.telefone && (
-                            <a href={`https://wa.me/55${c.telefone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer"
+                            <a href={whatsappHref(c)} target="_blank" rel="noreferrer"
                               className="p-1.5 text-[#075E54] dark:text-[#25D366] hover:bg-[#25D366]/10 rounded-lg transition-colors" title="WhatsApp">
                               <MessageCircle size={15} />
                             </a>

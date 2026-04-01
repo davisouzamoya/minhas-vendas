@@ -786,9 +786,18 @@ function TransacoesContent() {
 
       {/* Page header + Summary cards */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Vendas</h1>
-          <p className="hidden sm:block text-base text-gray-400 mt-1">Gerencie seu fluxo de caixa com precisão.</p>
+        <div className="flex items-center justify-between gap-4 w-full md:w-auto">
+          <div>
+            <h1 className="hidden sm:block text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Vendas</h1>
+            <p className="hidden sm:block text-base text-gray-400 mt-1">Gerencie seu fluxo de caixa com precisão.</p>
+          </div>
+          <Link
+            href="/nova"
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
+          >
+            <ShoppingCart size={16} />
+            Nova venda
+          </Link>
         </div>
 
         {totais && (

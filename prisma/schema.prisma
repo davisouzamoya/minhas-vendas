@@ -42,6 +42,7 @@ model Cliente {
   telefone    String?
   email       String?
   aniversario DateTime?     @db.Date
+  ativo       Boolean       @default(true)
   createdAt   DateTime      @default(now())
 
   transacoes Transaction[]
@@ -55,6 +56,7 @@ model Fornecedor {
   nome      String
   telefone  String?
   email     String?
+  ativo     Boolean       @default(true)
   createdAt DateTime      @default(now())
 
   transacoes Transaction[]
@@ -71,4 +73,23 @@ model Perfil {
   role         String   @default("user")
   metaMensal   Float?
   updatedAt    DateTime @updatedAt
+}
+
+model Produto {
+  id            Int      @id @default(autoincrement())
+  userId        String
+  nome          String
+  descricao     String?
+  categoria     String?
+  preco         Float?
+  precoCusto    Float?
+  estoque       Float    @default(0)
+  estoqueMinimo Float?
+  unidade       String?
+  ativo         Boolean  @default(true)
+  fotoUrl       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
 }

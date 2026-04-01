@@ -21,7 +21,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const updated = await prisma.fornecedor.update({
       where: { id: parseInt(id) },
-      data: { nome: body.nome, telefone: body.telefone ?? null, email: body.email ?? null },
+      data: { nome: body.nome, telefone: body.telefone ?? null, email: body.email ?? null, ativo: body.ativo !== undefined ? Boolean(body.ativo) : undefined },
     });
 
     return NextResponse.json(updated);

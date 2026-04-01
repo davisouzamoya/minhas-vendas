@@ -40,6 +40,7 @@ export async function GET() {
       telefone: c.telefone,
       email: c.email,
       aniversario: c.aniversario?.toISOString() ?? null,
+      ativo: c.ativo,
       createdAt: c.createdAt.toISOString(),
       lastPurchaseDate: lastPurchase?.data.toISOString() ?? null,
       lastPurchaseAmount: lastPurchase?.valorTotal ?? null,

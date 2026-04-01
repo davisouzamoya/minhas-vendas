@@ -148,13 +148,13 @@ export async function GET() {
     };
   }).sort((a, b) => b.diasSemComprar - a.diasSemComprar);
 
-  type PerfilOnboarding = { nomeNegocio: string | null; onboardingCompleto: boolean; metaMensal: number | null };
+  type PerfilOnboarding = { nomeNegocio: string | null; metaMensal: number | null };
   const [perfilOnboarding] = await prisma.$queryRaw<PerfilOnboarding[]>`
-    SELECT "nomeNegocio", "onboardingCompleto", "metaMensal" FROM "Perfil" WHERE "userId" = ${userId}
+    SELECT "nomeNegocio", "metaMensal" FROM "Perfil" WHERE "userId" = ${userId}
   `;
 
   const onboarding = {
-    completo: perfilOnboarding?.onboardingCompleto ?? false,
+    completo: vendasCount > 0 && clientesCount > 0 && !!perfilOnboarding?.nomeNegocio,
     passos: {
       perfil: !!perfilOnboarding?.nomeNegocio,
       primeiraVenda: vendasCount > 0,

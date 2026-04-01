@@ -26,6 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         telefone: body.telefone ?? null,
         email: body.email ?? null,
         aniversario: body.aniversario ? new Date(body.aniversario) : null,
+        ativo: body.ativo !== undefined ? Boolean(body.ativo) : undefined,
       },
     });
 

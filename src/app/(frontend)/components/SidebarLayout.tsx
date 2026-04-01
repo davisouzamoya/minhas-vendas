@@ -23,6 +23,7 @@ import {
   Search,
   Bell,
   History,
+  Package,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 
@@ -31,6 +32,7 @@ const nav = [
   { href: "/transacoes", label: "Vendas", icon: ArrowLeftRight },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
+  { href: "/estoque", label: "Estoque", icon: Package },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity },
   { href: "/perfil", label: "Configuração", icon: Settings },
@@ -56,6 +58,8 @@ function SidebarContent({
   const [nomeNegocio, setNomeNegocio] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [pendentes, setPendentes] = useState(0);
+  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
+  const [aniversariantes, setAniversariantes] = useState(0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -72,7 +76,20 @@ function SidebarContent({
     });
   }
 
-  useEffect(() => { fetchPerfil(); fetchPendentes(); }, [pathname]);
+  function fetchEstoqueBaixo() {
+    fetch("/api/produtos").then((r) => r.ok ? r.json() : []).then((produtos: { estoque: number; estoqueMinimo: number | null; ativo: boolean }[]) => {
+      const count = produtos.filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length;
+      setEstoqueBaixo(count);
+    });
+  }
+
+  function fetchAniversariantes() {
+    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => {
+      setAniversariantes(d?.aniversariantes ?? 0);
+    });
+  }
+
+  useEffect(() => { fetchPerfil(); fetchPendentes(); fetchEstoqueBaixo(); fetchAniversariantes(); }, [pathname]);
 
   useEffect(() => {
     window.addEventListener("perfilUpdated", fetchPerfil);
@@ -136,6 +153,16 @@ function SidebarContent({
                   {pendentes}
                 </span>
               )}
+              {href === "/estoque" && estoqueBaixo > 0 && (
+                <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+                  {estoqueBaixo}
+                </span>
+              )}
+              {href === "/clientes" && aniversariantes > 0 && (
+                <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+                  {aniversariantes}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -191,6 +218,8 @@ function AppHeader({ onMobileMenuOpen }: {
     ? "/clientes"
     : pathname.startsWith("/transacoes")
     ? "/transacoes"
+    : pathname.startsWith("/estoque")
+    ? "/estoque"
     : pathname.startsWith("/dashboard") || pathname === "/"
     ? "/dashboard"
     : pathname.startsWith("/fluxo-de-caixa")
@@ -205,6 +234,8 @@ function AppHeader({ onMobileMenuOpen }: {
     ? "Buscar cliente..."
     : pathname.startsWith("/transacoes")
     ? "Buscar venda..."
+    : pathname.startsWith("/estoque")
+    ? "Buscar produto..."
     : pathname.startsWith("/dashboard") || pathname === "/"
     ? "Buscar em vendas..."
     : pathname.startsWith("/fluxo-de-caixa")
@@ -276,6 +307,7 @@ function AppHeader({ onMobileMenuOpen }: {
             pathname.startsWith("/transacoes") ? "Vendas" :
             pathname.startsWith("/clientes") ? "Clientes" :
             pathname.startsWith("/fornecedores") ? "Fornecedores" :
+            pathname.startsWith("/estoque") ? "Estoque" :
             pathname.startsWith("/relatorios") ? "Relatórios" :
             pathname.startsWith("/perfil") ? "Configuração" :
             pathname.startsWith("/dashboard") ? "Dashboard" :

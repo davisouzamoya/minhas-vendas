@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
   const dataFim = searchParams.get("dataFim");
   const clienteId = searchParams.get("clienteId");
   const fornecedorId = searchParams.get("fornecedorId");
+  const produto = searchParams.get("produto");
   const statusPagamento = searchParams.get("statusPagamento");
   const exportCsv = searchParams.get("export") === "csv";
   const page = parseInt(searchParams.get("page") ?? "1");
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
     ...(statusPagamento && { statusPagamento }),
     ...(clienteId && { clienteId: parseInt(clienteId) }),
     ...(fornecedorId && { fornecedorId: parseInt(fornecedorId) }),
+    ...(produto && { produto }),
     ...(dataInicio || dataFim ? {
       data: {
         ...(dataInicio && { gte: new Date(dataInicio) }),
@@ -104,6 +106,14 @@ export async function POST(request: NextRequest) {
       data: { ...baseData, data: new Date(body.data) },
       include,
     });
+
+    // Desconta estoque ao registrar venda
+    if (body.tipo === "venda" && body.produto && body.quantidade) {
+      await prisma.produto.updateMany({
+        where: { userId, nome: body.produto },
+        data: { estoque: { decrement: Number(body.quantidade) } },
+      });
+    }
 
     // Gera cópias mensais se recorrente
     if (body.recorrente && body.meses && body.meses > 1) {

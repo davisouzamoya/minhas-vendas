@@ -12,10 +12,20 @@ import {
   Receipt,
   TrendingUp,
   TrendingDown,
-  Camera,
   Link2,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
+
+function maskBRL(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = parseInt(digits, 10);
+  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseBRL(formatted: string): number {
+  return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
+}
 
 const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
 const DEFAULT_CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
@@ -48,7 +58,6 @@ const defaultForm = {
   statusPagamento: "",
   observacoes: "",
   comprovanteUrl: "",
-  fotoUrl: "",
   recorrente: false,
   meses: 3,
 };
@@ -69,12 +78,11 @@ function NovaVendaContent() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
   const [ultimaCompra, setUltimaCompra] = useState<null | { produto: string | null; categoria: string | null; valor_total: string; forma_pagamento: string; clienteId: string }>(null);
-  const [uploadingFoto, setUploadingFoto] = useState(false);
-  const [fotoPreview, setFotoPreview] = useState<string>("");
   const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
   const [novaCat, setNovaCat] = useState("");
   const [showAddCat, setShowAddCat] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [produtosEstoque, setProdutosEstoque] = useState<{ id: number; nome: string; preco: number | null; categoria: string | null; estoque: number | null }[]>([]);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const supabase = createClient();
 
   const [form, setForm] = useState(defaultForm);
@@ -98,6 +106,7 @@ function NovaVendaContent() {
     fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
     fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
     fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
+    fetch("/api/produtos?ativos=1").then((r) => r.ok ? r.json() : []).then(setProdutosEstoque);
     const clienteIdParam = searchParams.get("clienteId");
     if (clienteIdParam) {
       setForm((prev) => ({ ...prev, clienteId: clienteIdParam }));
@@ -151,7 +160,7 @@ function NovaVendaContent() {
   }
 
   useEffect(() => {
-    if (form.produto || form.valor_total || form.observacoes || form.fotoUrl) {
+    if (form.produto || form.valor_total || form.observacoes) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
     }
   }, [form]);
@@ -162,7 +171,6 @@ function NovaVendaContent() {
       try {
         const parsed = JSON.parse(saved);
         setForm({ ...defaultForm, ...parsed });
-        if (parsed.fotoUrl) setFotoPreview(parsed.fotoUrl);
       } catch { /* ignore */ }
     }
     setHasDraft(false);
@@ -178,8 +186,8 @@ function NovaVendaContent() {
       const next = { ...prev, [field]: value };
       if (field === "quantidade" || field === "valor_unitario") {
         const qty = parseFloat(field === "quantidade" ? value : prev.quantidade) || 0;
-        const unit = parseFloat(field === "valor_unitario" ? value : prev.valor_unitario) || 0;
-        if (qty > 0 && unit > 0) next.valor_total = (qty * unit).toFixed(2);
+        const unit = field === "valor_unitario" ? parseBRL(value) : parseBRL(prev.valor_unitario);
+        if (qty > 0 && unit > 0) next.valor_total = maskBRL(String(Math.round(qty * unit * 100)));
       }
       if (field === "tipo") {
         next.clienteId = "";
@@ -191,33 +199,9 @@ function NovaVendaContent() {
     });
   }
 
-  async function handleFotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const localUrl = URL.createObjectURL(file);
-    setFotoPreview(localUrl);
-    setUploadingFoto(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("fotos").upload(fileName, file, { upsert: false });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("fotos").getPublicUrl(fileName);
-      setForm((prev) => ({ ...prev, fotoUrl: urlData.publicUrl }));
-      setFotoPreview(urlData.publicUrl);
-    } catch (err) {
-      console.error("Erro ao fazer upload da foto:", err);
-      setFotoPreview("");
-      setForm((prev) => ({ ...prev, fotoUrl: "" }));
-    } finally {
-      setUploadingFoto(false);
-    }
-  }
-
-  function removeFoto() {
-    setFotoPreview("");
-    setForm((prev) => ({ ...prev, fotoUrl: "" }));
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  function showToast(msg: string) {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
   }
 
   const usaCliente = form.tipo === "venda" || form.tipo === "entrada";
@@ -234,8 +218,8 @@ function NovaVendaContent() {
         ...form,
         descricao: form.produto || form.tipo,
         quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
-        valor_unitario: form.valor_unitario ? parseFloat(form.valor_unitario) : null,
-        valor_total: parseFloat(form.valor_total),
+        valor_unitario: form.valor_unitario ? parseBRL(form.valor_unitario) : null,
+        valor_total: parseBRL(form.valor_total),
         produto: form.produto || null,
         categoria: form.categoria || null,
         forma_pagamento: form.forma_pagamento || null,
@@ -244,7 +228,7 @@ function NovaVendaContent() {
         statusPagamento: form.statusPagamento || null,
         observacoes: form.observacoes || null,
         comprovanteUrl: form.comprovanteUrl || null,
-        fotoUrl: form.fotoUrl || null,
+        fotoUrl: null,
         recorrente: form.recorrente,
         meses: form.recorrente ? form.meses : 1,
       }),
@@ -269,6 +253,14 @@ function NovaVendaContent() {
 
   return (
     <div className="w-full max-w-4xl mx-auto pb-12">
+
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 bg-gray-900 dark:bg-gray-700 text-white text-sm font-medium rounded-2xl shadow-lg animate-fade-in">
+          <AlertTriangle size={16} className="text-amber-400 shrink-0" />
+          {toastMsg}
+        </div>
+      )}
 
       {/* Última compra do cliente */}
       {ultimaCompra && !hasDraft && (
@@ -404,16 +396,6 @@ function NovaVendaContent() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Produto / Serviço</label>
-              <input
-                type="text"
-                value={form.produto}
-                onChange={(e) => set("produto", e.target.value)}
-                placeholder="O que você vendeu?"
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Categoria</label>
                 <button type="button" onClick={() => setShowAddCat((v) => !v)} className="text-xs text-green-600 hover:underline">
@@ -426,6 +408,50 @@ function NovaVendaContent() {
                   <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Produto / Serviço</label>
+              {(() => {
+                const opcoes = produtosEstoque.filter(
+                  (p) => form.categoria && p.categoria === form.categoria
+                );
+                if (!form.categoria) {
+                  return (
+                    <div className="flex items-center gap-2 px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-400">
+                      Selecione uma categoria primeiro
+                    </div>
+                  );
+                }
+                if (opcoes.length === 0) {
+                  return (
+                    <div className="flex items-center justify-between px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-xs text-gray-400">
+                      Nenhum produto nesta categoria.{" "}
+                      <Link href="/estoque" className="text-green-600 hover:underline font-medium whitespace-nowrap ml-1">
+                        Cadastrar produto
+                      </Link>
+                    </div>
+                  );
+                }
+                const produtoSelecionado = opcoes.find((p) => p.nome === form.produto);
+                return (
+                  <>
+                    <select
+                      value={form.produto}
+                      onChange={(e) => {
+                        const selecionado = opcoes.find((p) => p.nome === e.target.value);
+                        set("produto", e.target.value);
+                        if (selecionado?.preco) set("valor_unitario", maskBRL(String(Math.round(selecionado.preco * 100))));
+                      }}
+                      className={selectCls}
+                    >
+                      <option value="">Selecione um produto</option>
+                      {opcoes.map((p) => (
+                        <option key={p.id} value={p.nome}>{p.nome}</option>
+                      ))}
+                    </select>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -456,40 +482,57 @@ function NovaVendaContent() {
           )}
         </div>
 
-        {/* Section: Valores + Foto (bento row) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-
-          {/* Valores e Quantidade (2/3) */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
+        {/* Section: Valores e Quantidade */}
+        <div>
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 sm:p-8 space-y-5" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
             <h3 className="text-base font-bold text-green-700 dark:text-green-400 flex items-center gap-2">
               <Receipt size={18} />
               Valores e Quantidade
             </h3>
 
+            {(() => {
+              const prodSel = produtosEstoque.find((p) => p.nome === form.produto);
+              const estoqueMax = prodSel?.estoque ?? null;
+              const qtdAtual = parseFloat(form.quantidade) || 0;
+              const acimaDaEstoque = estoqueMax !== null && qtdAtual > estoqueMax;
+              return (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Quantidade</label>
                 <input
                   type="number"
                   value={form.quantidade}
-                  onChange={(e) => set("quantidade", e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (estoqueMax !== null && parseFloat(val) > estoqueMax) {
+                      showToast(`Quantidade indisponível. Em estoque: ${estoqueMax} unid.`);
+                      set("quantidade", String(estoqueMax));
+                    } else {
+                      set("quantidade", val);
+                    }
+                  }}
                   placeholder="0"
                   min="0"
+                  max={estoqueMax !== null ? estoqueMax : undefined}
                   step="0.01"
                   className={inputCls}
                 />
+                {estoqueMax !== null && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium ml-1 mt-1">
+                    Em estoque: {estoqueMax} unid.
+                  </p>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-600 dark:text-gray-400 ml-1">Valor Unitário</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={form.valor_unitario}
-                    onChange={(e) => set("valor_unitario", e.target.value)}
+                    onChange={(e) => set("valor_unitario", maskBRL(e.target.value))}
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
                     className={inputCls + " pl-9 font-bold"}
                   />
                 </div>
@@ -499,18 +542,19 @@ function NovaVendaContent() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">R$</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={form.valor_total}
-                    onChange={(e) => set("valor_total", e.target.value)}
+                    onChange={(e) => set("valor_total", maskBRL(e.target.value))}
                     placeholder="0,00"
-                    min="0"
-                    step="0.01"
                     required
                     className={inputCls + " pl-9 font-bold"}
                   />
                 </div>
               </div>
             </div>
+              );
+            })()}
 
             {/* Status (venda only) — toggle buttons */}
             {form.tipo === "venda" && (
@@ -602,56 +646,6 @@ function NovaVendaContent() {
             )}
           </div>
 
-          {/* Foto do produto (1/3) */}
-          <div
-            className="lg:col-span-1 bg-white dark:bg-gray-900 p-6 flex flex-col items-center justify-center gap-4 border-2 border-dashed border-gray-200 dark:border-gray-700 text-center"
-            style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
-          >
-            {fotoPreview ? (
-              <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={fotoPreview}
-                  alt="Foto do produto"
-                  className="w-28 h-28 object-cover rounded-2xl border border-gray-200"
-                />
-                {uploadingFoto && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
-                {!uploadingFoto && (
-                  <button
-                    type="button"
-                    onClick={removeFoto}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingFoto}
-                className="flex flex-col items-center gap-4 w-full group"
-              >
-                <div className="w-16 h-16 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 group-hover:bg-green-100 dark:group-hover:bg-green-900/40 transition-colors">
-                  <Camera size={28} />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-700">Foto do Produto</p>
-                  <p className="text-xs text-gray-400 mt-1">Clique para selecionar</p>
-                </div>
-                <span className="text-xs text-green-600 font-bold underline">Selecionar arquivo</span>
-              </button>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFotoUpload} className="hidden" />
-            {!fotoPreview && (
-              <p className="text-[10px] text-gray-300">JPG, PNG, WEBP (máx. 5MB)</p>
-            )}
-          </div>
         </div>
 
         {/* Section: Detalhes Adicionais */}
@@ -705,11 +699,11 @@ function NovaVendaContent() {
           </button>
           <button
             type="submit"
-            disabled={loading || uploadingFoto}
+            disabled={loading}
             className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 sm:py-4 sm:px-12 rounded-full font-extrabold text-sm sm:text-base flex items-center gap-2 sm:gap-3 shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
           >
-            {loading ? "Salvando..." : uploadingFoto ? "Aguardando upload..." : "Salvar Venda"}
-            {!loading && !uploadingFoto && <CheckCircle size={20} />}
+            {loading ? "Salvando..." : "Salvar Venda"}
+            {!loading && <CheckCircle size={20} />}
           </button>
         </div>
 

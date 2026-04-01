@@ -15,6 +15,7 @@ interface Fornecedor {
   nome: string;
   telefone: string | null;
   email: string | null;
+  ativo: boolean;
 }
 
 interface Transaction {
@@ -118,7 +119,7 @@ function FornecedorModal({ fornecedor, onSave, onCancel }: {
   onSave: () => void;
   onCancel: () => void;
 }) {
-  const [form, setForm] = useState({ nome: fornecedor?.nome ?? "", telefone: fornecedor?.telefone ?? "", email: fornecedor?.email ?? "" });
+  const [form, setForm] = useState({ nome: fornecedor?.nome ?? "", telefone: fornecedor?.telefone ?? "", email: fornecedor?.email ?? "", ativo: fornecedor?.ativo ?? true });
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -128,7 +129,7 @@ function FornecedorModal({ fornecedor, onSave, onCancel }: {
     await fetch(url, {
       method: fornecedor ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome: form.nome, telefone: form.telefone || null, email: form.email || null }),
+      body: JSON.stringify({ nome: form.nome, telefone: form.telefone || null, email: form.email || null, ativo: form.ativo }),
     });
     setSaving(false);
     onSave();
@@ -158,6 +159,20 @@ function FornecedorModal({ fornecedor, onSave, onCancel }: {
             <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
+          {fornecedor && (
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ativo: !form.ativo })}
+              className="flex items-center gap-3 w-full"
+            >
+              <div className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.ativo ? "bg-green-600" : "bg-gray-300 dark:bg-gray-600"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.ativo ? "translate-x-5" : "translate-x-0"}`} />
+              </div>
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                {form.ativo ? "Fornecedor ativo" : "Fornecedor inativo"}
+              </span>
+            </button>
+          )}
           <div className="flex gap-3 justify-end pt-1">
             <button type="button" onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               Cancelar
@@ -343,13 +358,20 @@ function FornecedoresContent() {
           {filtrados.map((f) => (
             <div
               key={f.id}
-              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 hover:-translate-y-1 transition-all duration-300"
+              className={`bg-white dark:bg-gray-900 border p-6 hover:-translate-y-1 transition-all duration-300 ${f.ativo ? "border-gray-200 dark:border-gray-800" : "border-gray-100 dark:border-gray-800 opacity-60"}`}
               style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}
             >
               {/* Card top */}
               <div className="flex items-start justify-between mb-5">
-                <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                  <Building2 size={22} className="text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                    <Building2 size={22} className="text-green-600 dark:text-green-400" />
+                  </div>
+                  {!f.ativo && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                      Inativo
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <button
