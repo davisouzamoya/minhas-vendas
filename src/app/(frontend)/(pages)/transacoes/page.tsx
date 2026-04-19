@@ -40,7 +40,7 @@ interface Pessoa { id: number; nome: string; }
 interface Totais { vendas: number; despesas: number; entradas: number; saldo: number; }
 
 // --- Constants ---
-const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
+const TIPOS = ["venda", "despesa"] as const;
 const DEFAULT_CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
 

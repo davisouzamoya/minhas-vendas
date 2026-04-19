@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   ShoppingCart,
   Receipt,
-  TrendingUp,
-  TrendingDown,
   Link2,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
@@ -27,7 +25,7 @@ function parseBRL(formatted: string): number {
   return parseFloat(formatted.replace(/\./g, "").replace(",", ".")) || 0;
 }
 
-const TIPOS = ["venda", "despesa", "entrada", "saida"] as const;
+const TIPOS = ["venda", "despesa"] as const;
 const DEFAULT_CATEGORIAS = ["roupa", "alimentação", "fornecedor", "transporte", "serviço", "outro"];
 const PAGAMENTOS = ["pix", "dinheiro", "cartao", "boleto", "transferencia"];
 const DRAFT_KEY = "nova_transacao_rascunho";
@@ -38,10 +36,8 @@ interface Cliente { id: number; nome: string; }
 interface Fornecedor { id: number; nome: string; }
 
 const TIPO_CONFIG = {
-  venda:   { label: "Venda",   icon: ShoppingCart, filled: true },
-  despesa: { label: "Despesa", icon: Receipt,       filled: false },
-  entrada: { label: "Entrada", icon: TrendingUp,    filled: false },
-  saida:   { label: "Saída",   icon: TrendingDown,  filled: false },
+  venda:   { label: "Venda",   icon: ShoppingCart },
+  despesa: { label: "Despesa", icon: Receipt },
 };
 
 const defaultForm = {
@@ -204,8 +200,8 @@ function NovaVendaContent() {
     setTimeout(() => setToastMsg(null), 3000);
   }
 
-  const usaCliente = form.tipo === "venda" || form.tipo === "entrada";
-  const usaFornecedor = form.tipo === "despesa" || form.tipo === "saida";
+  const usaCliente = form.tipo === "venda";
+  const usaFornecedor = form.tipo === "despesa";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -245,7 +241,7 @@ function NovaVendaContent() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <CheckCircle size={56} className="text-green-500" />
-        <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">Venda registrada!</p>
+        <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">{form.tipo === "despesa" ? "Despesa registrada!" : "Venda registrada!"}</p>
         <p className="text-sm text-gray-400">Redirecionando...</p>
       </div>
     );
@@ -294,7 +290,7 @@ function NovaVendaContent() {
 
 
       {/* Type Selector — Bento cards */}
-      <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
         {TIPOS.map((t) => {
           const cfg = TIPO_CONFIG[t];
           const Icon = cfg.icon;
@@ -304,7 +300,7 @@ function NovaVendaContent() {
               key={t}
               type="button"
               onClick={() => set("tipo", t)}
-              className={`flex flex-col items-center gap-1.5 sm:gap-3 p-3 sm:p-6 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-1.5 sm:gap-3 p-4 sm:p-8 rounded-xl border-2 transition-all ${
                 active
                   ? "border-green-600 bg-white dark:bg-gray-900 shadow-sm scale-105"
                   : "border-transparent bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -702,7 +698,7 @@ function NovaVendaContent() {
             disabled={loading}
             className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 sm:py-4 sm:px-12 rounded-full font-extrabold text-sm sm:text-base flex items-center gap-2 sm:gap-3 shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
           >
-            {loading ? "Salvando..." : "Salvar Venda"}
+            {loading ? "Salvando..." : form.tipo === "despesa" ? "Salvar Despesa" : "Salvar Venda"}
             {!loading && <CheckCircle size={20} />}
           </button>
         </div>
