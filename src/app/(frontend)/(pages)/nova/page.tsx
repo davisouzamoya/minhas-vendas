@@ -463,7 +463,7 @@ function NovaVendaContent() {
                   onChange={(e) => setNovaCat(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategoria())}
                   placeholder="Nova categoria..."
-                  className="flex-1 px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-green-500/30"
+                  className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/30"
                 />
                 <button type="button" onClick={addCategoria}
                   className="px-3 py-2 text-xs bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors">
@@ -472,9 +472,9 @@ function NovaVendaContent() {
               </div>
               <div className="flex flex-wrap gap-1">
                 {categorias.map((c) => (
-                  <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white border border-gray-200 rounded-full">
+                  <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-full">
                     {c}
-                    <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 transition-colors leading-none">×</button>
+                    <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors leading-none">×</button>
                   </span>
                 ))}
               </div>
