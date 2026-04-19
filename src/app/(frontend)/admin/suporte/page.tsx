@@ -1,12 +1,24 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, ShieldCheck, User, CheckCircle2 } from "lucide-react";
+import { Search, ShieldCheck, User, CheckCircle2, Zap } from "lucide-react";
+
+const PLANOS = ["gratuito", "basico", "pro", "full"] as const;
+type Plano = (typeof PLANOS)[number];
+
+const PLANO_COR: Record<Plano, string> = {
+  gratuito: "bg-gray-800 text-gray-400",
+  basico: "bg-blue-900/50 text-blue-400",
+  pro: "bg-purple-900/50 text-purple-400",
+  full: "bg-green-900/50 text-green-400",
+};
 
 interface Usuario {
   userId: string;
   nomeNegocio: string;
   role: string;
+  plan: string;
+  trialEndsAt: string | null;
   updatedAt: string;
   transacoes: number;
   ultimaAtividade: string | null;
@@ -38,15 +50,19 @@ export default function AdminSuporte() {
     return () => clearTimeout(t);
   }, [q, load]);
 
-  async function alterarRole(userId: string, role: string) {
+  async function alterarCampo(userId: string, campo: object) {
     setAlterando(userId);
     await fetch("/api/admin/usuarios", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, role }),
+      body: JSON.stringify({ userId, ...campo }),
     });
     await load(q);
     setAlterando(null);
+  }
+
+  function alterarRole(userId: string, role: string) {
+    return alterarCampo(userId, { role });
   }
 
   return (
@@ -79,6 +95,7 @@ export default function AdminSuporte() {
               <tr className="border-b border-gray-800 text-xs text-gray-500 uppercase tracking-wider">
                 <th className="text-left px-4 py-3">Negócio</th>
                 <th className="text-center px-4 py-3">Role</th>
+                <th className="text-center px-4 py-3">Plano</th>
                 <th className="text-right px-4 py-3">Transações</th>
                 <th className="text-right px-4 py-3">Clientes</th>
                 <th className="text-right px-4 py-3">Última atividade</th>
@@ -86,56 +103,76 @@ export default function AdminSuporte() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {usuarios.map((u) => (
-                <tr key={u.userId} className="hover:bg-gray-800/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
-                        {u.role === "admin"
-                          ? <ShieldCheck size={14} className="text-green-400" />
-                          : <User size={14} className="text-gray-400" />
-                        }
+              {usuarios.map((u) => {
+                const trialAtivo = u.trialEndsAt && new Date() <= new Date(u.trialEndsAt);
+                return (
+                  <tr key={u.userId} className="hover:bg-gray-800/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
+                          {u.role === "admin"
+                            ? <ShieldCheck size={14} className="text-green-400" />
+                            : <User size={14} className="text-gray-400" />
+                          }
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-100">{u.nomeNegocio}</p>
+                          <p className="text-xs text-gray-600">{u.userId.slice(0, 8)}…</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-100">{u.nomeNegocio}</p>
-                        <p className="text-xs text-gray-600">{u.userId.slice(0, 8)}…</p>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                        u.role === "admin"
+                          ? "bg-green-900/50 text-green-400"
+                          : "bg-gray-800 text-gray-400"
+                      }`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <select
+                          value={u.plan ?? "gratuito"}
+                          disabled={alterando === u.userId}
+                          onChange={(e) => alterarCampo(u.userId, { plan: e.target.value })}
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium border-none outline-none cursor-pointer ${PLANO_COR[(u.plan as Plano) ?? "gratuito"]}`}
+                        >
+                          {PLANOS.map((p) => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                        {trialAtivo && (
+                          <span className="flex items-center gap-0.5 text-[10px] text-orange-400">
+                            <Zap size={9} /> trial ativo
+                          </span>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
-                      u.role === "admin"
-                        ? "bg-green-900/50 text-green-400"
-                        : "bg-gray-800 text-gray-400"
-                    }`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-300">{u.transacoes}</td>
-                  <td className="px-4 py-3 text-right text-gray-300">{u.clientes}</td>
-                  <td className="px-4 py-3 text-right text-gray-400">{formatDate(u.ultimaAtividade)}</td>
-                  <td className="px-4 py-3 text-right">
-                    {u.role === "admin" ? (
-                      <button
-                        onClick={() => alterarRole(u.userId, "user")}
-                        disabled={alterando === u.userId}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-gray-800 text-gray-400 hover:bg-red-900/40 hover:text-red-400 transition-colors disabled:opacity-50"
-                      >
-                        {alterando === u.userId ? "…" : "Remover admin"}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => alterarRole(u.userId, "admin")}
-                        disabled={alterando === u.userId}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-gray-800 text-gray-400 hover:bg-green-900/40 hover:text-green-400 transition-colors disabled:opacity-50 flex items-center gap-1 ml-auto"
-                      >
-                        <CheckCircle2 size={11} />
-                        {alterando === u.userId ? "…" : "Tornar admin"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-300">{u.transacoes}</td>
+                    <td className="px-4 py-3 text-right text-gray-300">{u.clientes}</td>
+                    <td className="px-4 py-3 text-right text-gray-400">{formatDate(u.ultimaAtividade)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {u.role === "admin" ? (
+                        <button
+                          onClick={() => alterarRole(u.userId, "user")}
+                          disabled={alterando === u.userId}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-gray-800 text-gray-400 hover:bg-red-900/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                        >
+                          {alterando === u.userId ? "…" : "Remover admin"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => alterarRole(u.userId, "admin")}
+                          disabled={alterando === u.userId}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-gray-800 text-gray-400 hover:bg-green-900/40 hover:text-green-400 transition-colors disabled:opacity-50 flex items-center gap-1 ml-auto"
+                        >
+                          <CheckCircle2 size={11} />
+                          {alterando === u.userId ? "…" : "Tornar admin"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

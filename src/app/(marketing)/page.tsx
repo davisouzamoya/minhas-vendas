@@ -311,81 +311,100 @@ export default function LandingPage() {
 
         {/* Planos */}
         <section id="precos" className="py-24 px-6">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="font-headline text-4xl font-bold mb-4" style={{ color: "#dee5ff" }}>O plano ideal para o seu momento</h2>
-              <p style={{ color: "#a3aac4" }}>Comece grátis e evolua conforme seu negócio cresce.</p>
+              <p style={{ color: "#a3aac4" }}>Comece grátis por 7 dias e evolua conforme seu negócio cresce.</p>
             </div>
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* Grátis */}
-              <div
-                className="p-10 rounded-3xl flex flex-col"
-                style={{ backgroundColor: "#0f1930", border: "1px solid rgba(64,72,93,0.3)" }}
-              >
-                <h3 className="font-headline text-xl font-bold mb-2" style={{ color: "#dee5ff" }}>Plano Grátis</h3>
-                <div className="text-4xl font-bold mb-6" style={{ color: "#dee5ff" }}>
+            <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6">
+
+              {/* Gratuito */}
+              <div className="p-8 rounded-3xl flex flex-col" style={{ backgroundColor: "#0f1930", border: "1px solid rgba(64,72,93,0.3)" }}>
+                <h3 className="font-headline text-lg font-bold mb-1" style={{ color: "#dee5ff" }}>Gratuito</h3>
+                <p className="text-xs mb-4" style={{ color: "#6d758c" }}>Histórico de 30 dias</p>
+                <div className="text-3xl font-bold mb-6" style={{ color: "#dee5ff" }}>
                   R$ 0<span className="text-sm font-normal" style={{ color: "#a3aac4" }}>/mês</span>
                 </div>
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {["Até 30 transações/mês", "Até 50 clientes ativos", "Dashboard financeiro básico"].map((item) => (
-                    <li key={item} className="flex items-center gap-3" style={{ color: "#a3aac4" }}>
-                      <CheckCircle size={16} style={{ color: "#6bff8f" }} />
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {["Dashboard básico", "Registrar vendas e despesas", "Histórico de 30 dias"].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm" style={{ color: "#a3aac4" }}>
+                      <CheckCircle size={14} className="mt-0.5 shrink-0" style={{ color: "#6bff8f" }} />
                       {item}
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/cadastro"
-                  className="w-full text-center py-4 rounded-xl font-bold transition-all hover:bg-white/5"
-                  style={{ border: "1px solid rgba(107,255,143,0.4)", color: "#6bff8f" }}
-                >
-                  Começar agora
+                <Link href="/cadastro" className="w-full text-center py-3 rounded-xl text-sm font-bold transition-all hover:bg-white/5" style={{ border: "1px solid rgba(107,255,143,0.3)", color: "#6bff8f" }}>
+                  Começar grátis
                 </Link>
               </div>
 
-              {/* Pro */}
-              <div
-                className="p-10 rounded-3xl flex flex-col relative shadow-2xl"
-                style={{
-                  backgroundColor: "#192540",
-                  border: "2px solid #6bff8f",
-                  boxShadow: "0 0 60px rgba(107,255,143,0.08)",
-                }}
-              >
-                <div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest"
-                  style={{ backgroundColor: "#6bff8f", color: "#002c0f" }}
-                >
-                  Recomendado
-                </div>
-                <h3 className="font-headline text-xl font-bold mb-2" style={{ color: "#dee5ff" }}>Plano Pro</h3>
-                <div className="text-4xl font-bold mb-6" style={{ color: "#6bff8f" }}>
+              {/* Básico */}
+              <div className="p-8 rounded-3xl flex flex-col" style={{ backgroundColor: "#0f1930", border: "1px solid rgba(64,72,93,0.3)" }}>
+                <h3 className="font-headline text-lg font-bold mb-1" style={{ color: "#dee5ff" }}>Básico</h3>
+                <p className="text-xs mb-4" style={{ color: "#6d758c" }}>Histórico de 90 dias</p>
+                <div className="text-3xl font-bold mb-6" style={{ color: "#dee5ff" }}>
                   R$ 29<span className="text-sm font-normal" style={{ color: "#a3aac4" }}>/mês</span>
                 </div>
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {[
-                    "Transações ilimitadas",
-                    "Clientes ilimitados",
-                    "Suporte prioritário via WhatsApp",
-                    "Exportação para Excel/PDF",
-                    "Alertas de churn e aniversário",
-                    "Relatórios avançados",
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-3" style={{ color: "#dee5ff" }}>
-                      <CheckCircle size={16} style={{ color: "#6bff8f" }} />
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {["Tudo do Gratuito", "Clientes e fornecedores", "Relatórios básicos", "Histórico de 90 dias"].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm" style={{ color: "#a3aac4" }}>
+                      <CheckCircle size={14} className="mt-0.5 shrink-0" style={{ color: "#6bff8f" }} />
                       {item}
                     </li>
                   ))}
                 </ul>
-                <Link
-                  href="/cadastro"
-                  className="w-full text-center py-4 rounded-xl font-bold transition-all hover:brightness-110 shadow-lg"
-                  style={{ backgroundColor: "#6bff8f", color: "#002c0f", boxShadow: "0 4px 20px rgba(107,255,143,0.2)" }}
-                >
-                  Quero ser Pro
+                <Link href="/cadastro" className="w-full text-center py-3 rounded-xl text-sm font-bold transition-all hover:bg-white/5" style={{ border: "1px solid rgba(107,255,143,0.3)", color: "#6bff8f" }}>
+                  Assinar Básico
                 </Link>
               </div>
+
+              {/* Pro — destaque */}
+              <div className="p-8 rounded-3xl flex flex-col relative shadow-2xl" style={{ backgroundColor: "#192540", border: "2px solid #6bff8f", boxShadow: "0 0 60px rgba(107,255,143,0.08)" }}>
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest" style={{ backgroundColor: "#6bff8f", color: "#002c0f" }}>
+                  Mais popular
+                </div>
+                <h3 className="font-headline text-lg font-bold mb-1" style={{ color: "#dee5ff" }}>Pro</h3>
+                <p className="text-xs mb-4" style={{ color: "#6d758c" }}>Histórico de 1 ano</p>
+                <div className="text-3xl font-bold mb-6" style={{ color: "#6bff8f" }}>
+                  R$ 79<span className="text-sm font-normal" style={{ color: "#a3aac4" }}>/mês</span>
+                </div>
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {["Tudo do Básico", "Estoque completo", "Fluxo de caixa", "Relatórios avançados", "Histórico de 1 ano"].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm" style={{ color: "#dee5ff" }}>
+                      <CheckCircle size={14} className="mt-0.5 shrink-0" style={{ color: "#6bff8f" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/cadastro" className="w-full text-center py-3 rounded-xl text-sm font-bold transition-all hover:brightness-110 shadow-lg" style={{ backgroundColor: "#6bff8f", color: "#002c0f" }}>
+                  Assinar Pro
+                </Link>
+              </div>
+
+              {/* Full */}
+              <div className="p-8 rounded-3xl flex flex-col" style={{ backgroundColor: "#0f1930", border: "1px solid rgba(64,72,93,0.3)" }}>
+                <h3 className="font-headline text-lg font-bold mb-1" style={{ color: "#dee5ff" }}>Full</h3>
+                <p className="text-xs mb-4" style={{ color: "#6d758c" }}>Histórico ilimitado</p>
+                <div className="text-3xl font-bold mb-6" style={{ color: "#dee5ff" }}>
+                  R$ 149<span className="text-sm font-normal" style={{ color: "#a3aac4" }}>/mês</span>
+                </div>
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {["Tudo do Pro", "Integração WhatsApp", "Histórico ilimitado", "Suporte prioritário"].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm" style={{ color: "#a3aac4" }}>
+                      <CheckCircle size={14} className="mt-0.5 shrink-0" style={{ color: "#6bff8f" }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/cadastro" className="w-full text-center py-3 rounded-xl text-sm font-bold transition-all hover:bg-white/5" style={{ border: "1px solid rgba(107,255,143,0.3)", color: "#6bff8f" }}>
+                  Assinar Full
+                </Link>
+              </div>
+
             </div>
+            <p className="text-center text-xs mt-8" style={{ color: "#6d758c" }}>
+              7 dias grátis com acesso completo · Sem cartão de crédito · Cancele quando quiser
+            </p>
           </div>
         </section>
 
@@ -449,13 +468,13 @@ export default function LandingPage() {
           <div className="space-y-4">
             <h5 className="font-bold text-sm" style={{ color: "#dee5ff" }}>Legal</h5>
             <ul className="space-y-2">
-              <li><a href="#" className="text-xs transition-colors hover:text-emerald-400" style={{ color: "#a3aac4" }}>Termos de Uso</a></li>
-              <li><a href="#" className="text-xs transition-colors hover:text-emerald-400" style={{ color: "#a3aac4" }}>Privacidade</a></li>
+              <li><Link href="/termos" className="text-xs transition-colors hover:text-emerald-400" style={{ color: "#a3aac4" }}>Termos de Uso</Link></li>
+              <li><Link href="/privacidade" className="text-xs transition-colors hover:text-emerald-400" style={{ color: "#a3aac4" }}>Privacidade</Link></li>
             </ul>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-8 pb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs" style={{ color: "#a3aac4" }}>© 2025 VendaPro. Todos os direitos reservados.</p>
+          <p className="text-xs" style={{ color: "#a3aac4" }}>© 2026 VendaPro. Todos os direitos reservados.</p>
           <div className="flex gap-3">
             <a
               href="#"

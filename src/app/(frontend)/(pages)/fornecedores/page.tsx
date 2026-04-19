@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { Building2, Plus, Pencil, Trash2, Phone, Mail, History, TrendingDown, ShoppingBag, Calendar, Search } from "lucide-react";
+import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
 
 function maskPhone(value: string) {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -459,8 +460,10 @@ function FornecedoresContent() {
 
 export default function Fornecedores() {
   return (
-    <Suspense>
-      <FornecedoresContent />
-    </Suspense>
+    <PlanoGuard feature="fornecedores">
+      <Suspense>
+        <FornecedoresContent />
+      </Suspense>
+    </PlanoGuard>
   );
 }

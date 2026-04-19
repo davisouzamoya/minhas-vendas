@@ -134,6 +134,13 @@ export default function Cadastro() {
             Entrar
           </Link>
         </p>
+
+        <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-4">
+          Ao criar sua conta você concorda com os{" "}
+          <Link href="/termos" className="underline hover:text-gray-600">Termos de Uso</Link>
+          {" "}e a{" "}
+          <Link href="/privacidade" className="underline hover:text-gray-600">Política de Privacidade</Link>.
+        </p>
       </div>
     </div>
   );

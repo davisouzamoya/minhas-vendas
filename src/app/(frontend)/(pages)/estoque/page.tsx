@@ -17,6 +17,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
+import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
 
 interface Produto {
   id: number;
@@ -709,8 +710,10 @@ function EstoqueContent() {
 
 export default function EstoquePage() {
   return (
-    <Suspense>
-      <EstoqueContent />
-    </Suspense>
+    <PlanoGuard feature="estoque">
+      <Suspense>
+        <EstoqueContent />
+      </Suspense>
+    </PlanoGuard>
   );
 }

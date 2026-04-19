@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
+import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
 
 function maskPhone(value: string) {
   const d = value.replace(/\D/g, "").slice(0, 11);
@@ -829,8 +830,10 @@ function ClientesContent() {
 
 export default function Clientes() {
   return (
-    <Suspense fallback={null}>
-      <ClientesContent />
-    </Suspense>
+    <PlanoGuard feature="clientes">
+      <Suspense fallback={null}>
+        <ClientesContent />
+      </Suspense>
+    </PlanoGuard>
   );
 }

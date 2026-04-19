@@ -10,7 +10,7 @@ async function requireAdmin() {
   return perfil?.role === "admin" ? user : null;
 }
 
-type PerfilRow = { userId: string; nomeNegocio: string; role: string; updatedAt: Date };
+type PerfilRow = { userId: string; nomeNegocio: string; role: string; plan: string; trialEndsAt: Date | null; updatedAt: Date };
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
   const q = new URL(request.url).searchParams.get("q") ?? "";
 
   const perfis: PerfilRow[] = q
-    ? await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "updatedAt" FROM "Perfil" WHERE "nomeNegocio" ILIKE ${'%' + q + '%'} ORDER BY "updatedAt" DESC LIMIT 50`
-    : await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "updatedAt" FROM "Perfil" ORDER BY "updatedAt" DESC LIMIT 50`;
+    ? await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "plan", "trialEndsAt", "updatedAt" FROM "Perfil" WHERE "nomeNegocio" ILIKE ${'%' + q + '%'} ORDER BY "updatedAt" DESC LIMIT 50`
+    : await prisma.$queryRaw`SELECT "userId", "nomeNegocio", "role", "plan", "trialEndsAt", "updatedAt" FROM "Perfil" ORDER BY "updatedAt" DESC LIMIT 50`;
 
   const userIds = perfis.map((p) => p.userId);
 
@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
     userId: p.userId,
     nomeNegocio: p.nomeNegocio,
     role: p.role,
+    plan: p.plan,
+    trialEndsAt: p.trialEndsAt,
     updatedAt: p.updatedAt,
     transacoes: (txMap[p.userId]?._count ?? 0),
     ultimaAtividade: txMap[p.userId]?._max?.createdAt ?? null,
@@ -58,11 +60,33 @@ export async function PATCH(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Não autorizado" }, { status: 403 });
 
-  const { userId, role } = await request.json();
-  if (!userId || !["user", "admin"].includes(role)) {
-    return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+  const body = await request.json();
+  const { userId } = body;
+  if (!userId) return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
+
+  if (body.role !== undefined) {
+    if (!["user", "admin"].includes(body.role)) {
+      return NextResponse.json({ error: "Role inválida" }, { status: 400 });
+    }
+    await prisma.$executeRaw`UPDATE "Perfil" SET "role" = ${body.role} WHERE "userId" = ${userId}`;
   }
 
-  await prisma.$executeRaw`UPDATE "Perfil" SET "role" = ${role} WHERE "userId" = ${userId}`;
+  if (body.plan !== undefined) {
+    const planosValidos = ["gratuito", "basico", "pro", "full"];
+    if (!planosValidos.includes(body.plan)) {
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
+    }
+    await prisma.$executeRaw`UPDATE "Perfil" SET "plan" = ${body.plan} WHERE "userId" = ${userId}`;
+  }
+
+  if (body.trialEndsAt !== undefined) {
+    const dt = body.trialEndsAt ? new Date(body.trialEndsAt) : null;
+    if (dt) {
+      await prisma.$executeRaw`UPDATE "Perfil" SET "trialEndsAt" = ${dt} WHERE "userId" = ${userId}`;
+    } else {
+      await prisma.$executeRaw`UPDATE "Perfil" SET "trialEndsAt" = NULL WHERE "userId" = ${userId}`;
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

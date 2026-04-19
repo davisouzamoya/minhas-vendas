@@ -24,18 +24,23 @@ import {
   Bell,
   History,
   Package,
+  Lock,
+  Zap,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
+import { usePlano } from "@/app/(frontend)/hooks/usePlano";
+import { PLANO_INFO } from "@/app/(backend)/lib/plano";
+import type { Plano } from "@/app/(backend)/lib/plano";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/transacoes", label: "Vendas", icon: ArrowLeftRight },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
-  { href: "/estoque", label: "Estoque", icon: Package },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity },
-  { href: "/perfil", label: "Configuração", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, feature: null },
+  { href: "/transacoes", label: "Vendas", icon: ArrowLeftRight, feature: null },
+  { href: "/clientes", label: "Clientes", icon: Users, feature: "clientes" },
+  { href: "/fornecedores", label: "Fornecedores", icon: Building2, feature: "fornecedores" },
+  { href: "/estoque", label: "Estoque", icon: Package, feature: "estoque" },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, feature: "relatorios" },
+  { href: "/fluxo-de-caixa", label: "Fluxo de Caixa", icon: Activity, feature: "fluxo-de-caixa" },
+  { href: "/perfil", label: "Configuração", icon: Settings, feature: null },
 ];
 
 function getInitials(name: string) {
@@ -60,6 +65,7 @@ function SidebarContent({
   const [pendentes, setPendentes] = useState(0);
   const [estoqueBaixo, setEstoqueBaixo] = useState(0);
   const [aniversariantes, setAniversariantes] = useState(0);
+  const plano = usePlano();
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -132,33 +138,39 @@ function SidebarContent({
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+        {nav.map(({ href, label, icon: Icon, feature }) => {
+          const bloqueado = feature ? !plano.temAcesso(feature) : false;
+          const active = pathname === href && !bloqueado;
+          const destino = bloqueado ? "/planos" : href;
+
           return (
             <Link
               key={href}
-              href={href}
+              href={destino}
               onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
-                active
+                bloqueado
+                  ? "text-gray-400 dark:text-gray-600 hover:bg-green-200/40 dark:hover:bg-white/5"
+                  : active
                   ? "bg-white dark:bg-white/10 text-green-700 dark:text-green-400 font-bold shadow-sm"
                   : "text-green-900 dark:text-gray-400 hover:bg-green-200/60 dark:hover:bg-white/5"
               }`}
               style={active ? { borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" } : { borderRadius: "0.5rem" }}
             >
-              <Icon size={18} className={active ? "text-green-600 dark:text-green-400" : ""} />
+              <Icon size={18} className={active ? "text-green-600 dark:text-green-400" : bloqueado ? "text-gray-400 dark:text-gray-600" : ""} />
               <span className="flex-1">{label}</span>
-              {href === "/relatorios" && pendentes > 0 && (
+              {bloqueado && <Lock size={12} className="text-gray-400 dark:text-gray-600 shrink-0" />}
+              {!bloqueado && href === "/relatorios" && pendentes > 0 && (
                 <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
                   {pendentes}
                 </span>
               )}
-              {href === "/estoque" && estoqueBaixo > 0 && (
+              {!bloqueado && href === "/estoque" && estoqueBaixo > 0 && (
                 <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
                   {estoqueBaixo}
                 </span>
               )}
-              {href === "/clientes" && aniversariantes > 0 && (
+              {!bloqueado && href === "/clientes" && aniversariantes > 0 && (
                 <span className="ml-auto text-xs font-bold bg-orange-500 text-white rounded-full px-1.5 py-0.5 leading-none">
                   {aniversariantes}
                 </span>
@@ -179,6 +191,28 @@ function SidebarContent({
           Nova Venda
         </Link>
       </div>
+
+      {/* Badge de plano */}
+      {!plano.carregando && (
+        <Link href="/planos" className="mx-1 mb-3 flex items-center gap-2 px-3 py-2 rounded-xl bg-white/60 dark:bg-white/5 border border-green-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-colors">
+          <Zap size={13} className={plano.trialAtivo ? "text-orange-500" : "text-green-600 dark:text-green-400"} />
+          <div className="flex-1 min-w-0">
+            {plano.trialAtivo ? (
+              <>
+                <p className="text-xs font-bold text-orange-600 dark:text-orange-400 leading-none">Trial</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{plano.trialDiasRestantes}d restante{plano.trialDiasRestantes !== 1 ? "s" : ""}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-green-800 dark:text-green-400 leading-none capitalize">
+                  {PLANO_INFO[(plano.plan as Plano) ?? "gratuito"]?.label ?? "Gratuito"}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Ver planos</p>
+              </>
+            )}
+          </div>
+        </Link>
+      )}
 
       {/* Theme + Logout */}
       <div className="space-y-0.5">

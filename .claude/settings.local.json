@@ -24,7 +24,14 @@
       "Bash(mkdir -p /Users/davisouza/workspace/minhasVendas/src/app/\\\\\\(backend\\\\\\)/api/clientes/[id])",
       "Bash(mkdir -p /Users/davisouza/workspace/minhasVendas/src/app/\\\\\\(backend\\\\\\)/api/fornecedores/[id])",
       "Bash(lsof -ti:3000)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(ls:*)",
+      "Bash(brew list *)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(curl -L https://github.com/stripe/stripe-cli/releases/download/v1.23.3/stripe_1.23.3_mac-os_arm64.tar.gz)",
+      "Bash(tar -xz)",
+      "Bash(sudo mv *)"
     ]
   }
 }

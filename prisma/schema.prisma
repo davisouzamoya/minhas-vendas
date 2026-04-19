@@ -65,14 +65,18 @@ model Fornecedor {
 }
 
 model Perfil {
-  id           Int      @id @default(autoincrement())
-  userId       String   @unique
+  id           Int       @id @default(autoincrement())
+  userId       String    @unique
   nomeNegocio  String
   logoUrl      String?
   categorias   Json?
-  role         String   @default("user")
+  role         String    @default("user")
   metaMensal   Float?
-  updatedAt    DateTime @updatedAt
+  plan                  String    @default("gratuito")
+  trialEndsAt           DateTime?
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  updatedAt             DateTime  @updatedAt
 }
 
 model Produto {

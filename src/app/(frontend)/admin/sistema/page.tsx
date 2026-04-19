@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, ArrowLeftRight, Activity, Image, UserCheck, CheckCircle2 } from "lucide-react";
+import { Users, ArrowLeftRight, Activity, Image, UserCheck, CheckCircle2, Mail, Loader2 } from "lucide-react";
 
 interface SistemaData {
   totalUsuarios: number;
@@ -36,12 +36,37 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
+const EMAILS_TESTE = [
+  { tipo: "boas-vindas", label: "Boas-vindas (trial)" },
+  { tipo: "assinatura", label: "Assinatura ativada" },
+  { tipo: "trial", label: "Trial expirando (3 dias)" },
+  { tipo: "cancelamento", label: "Assinatura cancelada" },
+];
+
 export default function AdminSistema() {
   const [data, setData] = useState<SistemaData | null>(null);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/sistema").then((r) => r.ok ? r.json() : null).then(setData);
   }, []);
+
+  async function testarEmail(tipo: string) {
+    setEnviando(tipo);
+    setResultado(null);
+    const res = await fetch("/api/admin/testar-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo }),
+    });
+    const json = await res.json();
+    setResultado(res.ok
+      ? { msg: `Enviado para ${json.enviado_para}`, ok: true }
+      : { msg: json.error ?? "Erro ao enviar", ok: false }
+    );
+    setEnviando(null);
+  }
 
   if (!data) return <p className="text-sm text-gray-500">Carregando...</p>;
 
@@ -97,6 +122,35 @@ export default function AdminSistema() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Teste de e-mail */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Mail size={16} className="text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-300">Testar envio de e-mail</h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {EMAILS_TESTE.map(({ tipo, label }) => (
+            <button
+              key={tipo}
+              onClick={() => testarEmail(tipo)}
+              disabled={enviando !== null}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-medium transition-colors disabled:opacity-50"
+            >
+              {enviando === tipo
+                ? <Loader2 size={12} className="animate-spin" />
+                : <Mail size={12} />
+              }
+              {label}
+            </button>
+          ))}
+        </div>
+        {resultado && (
+          <p className={`mt-3 text-xs font-medium ${resultado.ok ? "text-green-400" : "text-red-400"}`}>
+            {resultado.ok ? "✓" : "✗"} {resultado.msg}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Printer, AlertTriangle, CheckCircle2, MessageCircle, TrendingUp, TrendingDown, ArrowDownCircle, CreditCard } from "lucide-react";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
+import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
 
 interface ReportData {
   porCategoria: { categoria: string; total: number }[];
@@ -496,8 +497,10 @@ function RelatoriosContent() {
 
 export default function Relatorios() {
   return (
-    <Suspense>
-      <RelatoriosContent />
-    </Suspense>
+    <PlanoGuard feature="relatorios">
+      <Suspense>
+        <RelatoriosContent />
+      </Suspense>
+    </PlanoGuard>
   );
 }

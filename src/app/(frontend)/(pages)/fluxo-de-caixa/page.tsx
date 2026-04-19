@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { TrendingUp, TrendingDown, Wallet, Download, Star, AlertTriangle, ShoppingBag, Receipt } from "lucide-react";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
+import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
 
 interface FluxoRow {
   label: string;
@@ -339,8 +340,10 @@ function FluxoDeCaixaContent() {
 
 export default function FluxoDeCaixa() {
   return (
-    <Suspense fallback={null}>
-      <FluxoDeCaixaContent />
-    </Suspense>
+    <PlanoGuard feature="fluxo-de-caixa">
+      <Suspense fallback={null}>
+        <FluxoDeCaixaContent />
+      </Suspense>
+    </PlanoGuard>
   );
 }
