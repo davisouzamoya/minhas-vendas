@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 const FROM = process.env.EMAIL_FROM ?? "onboarding@resend.dev";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -49,7 +53,7 @@ function btn(texto: string, url: string) {
 
 // ─── 1. Boas-vindas (trial ativado) ────────────────────────────────────────
 export async function enviarEmailBoasVindas(para: string, nomeNegocio: string) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: para,
     subject: "Bem-vindo ao VendaPro! Seu trial de 7 dias começou 🎉",
@@ -80,7 +84,7 @@ export async function enviarEmailAssinaturaAtivada(para: string, plano: string) 
   const nomes: Record<string, string> = { basico: "Básico", pro: "Pro", full: "Full" };
   const nomeDoPlano = nomes[plano] ?? plano;
 
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: para,
     subject: `Assinatura ativada — Plano ${nomeDoPlano} ✅`,
@@ -104,7 +108,7 @@ export async function enviarEmailAssinaturaAtivada(para: string, plano: string) 
 
 // ─── 3. Trial expirando ─────────────────────────────────────────────────────
 export async function enviarEmailTrialExpirando(para: string, diasRestantes: number) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: para,
     subject: `Seu trial expira em ${diasRestantes} dia${diasRestantes !== 1 ? "s" : ""} ⏳`,
@@ -129,7 +133,7 @@ export async function enviarEmailTrialExpirando(para: string, diasRestantes: num
 
 // ─── 4. Assinatura cancelada ────────────────────────────────────────────────
 export async function enviarEmailAssinaturaCancelada(para: string) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: para,
     subject: "Sua assinatura foi cancelada",
