@@ -49,7 +49,7 @@ export default function LandingPage() {
             </a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-[#a3aac4] hover:text-[#dee5ff] transition-colors hidden md:block">
+            <Link href="/login" className="text-sm font-semibold px-4 py-2 rounded-full transition-all hover:bg-white/5" style={{ color: "#dee5ff", border: "1px solid rgba(107,255,143,0.2)" }}>
               Entrar
             </Link>
             <Link
