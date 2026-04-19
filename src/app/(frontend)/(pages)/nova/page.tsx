@@ -472,9 +472,9 @@ function NovaVendaContent() {
               </div>
               <div className="flex flex-wrap gap-1">
                 {categorias.map((c) => (
-                  <span key={c} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-full">
+                  <span key={c} className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-full">
                     {c}
-                    <button type="button" onClick={() => removeCategoria(c)} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors leading-none">×</button>
+                    <button type="button" onClick={() => removeCategoria(c)} className="w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors text-sm leading-none">×</button>
                   </span>
                 ))}
               </div>
