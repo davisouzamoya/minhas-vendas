@@ -85,7 +85,8 @@ function EstoqueContent() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [produtoStats, setProdutoStats] = useState<Record<number, { totalVendido: number; receitaTotal: number } | null>>({});
+  const [historicoId, setHistoricoId] = useState<number | null>(null);
+  const [produtoStats, setProdutoStats] = useState<Record<number, { totalVendido: number; receitaTotal: number; transacoes: { id: number; data: string; quantidade: number | null; valorTotal: number; cliente: { nome: string } | null }[] } | null>>({});
   const [fotoPreview, setFotoPreview] = useState<string>("");
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -241,10 +242,10 @@ function EstoqueContent() {
     const res = await fetch(`/api/transactions?tipo=venda&produto=${encodeURIComponent(produto.nome)}&export=csv`);
     if (!res.ok) { setProdutoStats((prev) => ({ ...prev, [produto.id]: null })); return; }
     const data = await res.json();
-    const transactions: { quantidade: number | null; valorTotal: number }[] = data.transactions ?? [];
+    const transactions: { id: number; data: string; quantidade: number | null; valorTotal: number; cliente: { nome: string } | null }[] = data.transactions ?? [];
     const totalVendido = transactions.reduce((sum, t) => sum + (t.quantidade ?? 0), 0);
     const receitaTotal = transactions.reduce((sum, t) => sum + t.valorTotal, 0);
-    setProdutoStats((prev) => ({ ...prev, [produto.id]: { totalVendido, receitaTotal } }));
+    setProdutoStats((prev) => ({ ...prev, [produto.id]: { totalVendido, receitaTotal, transacoes: transactions } }));
   }
 
   const baixoEstoque = produtos.filter(
@@ -375,10 +376,29 @@ function EstoqueContent() {
                       {p.categoria && (
                         <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">{p.categoria}</span>
                       )}
+                      {(() => {
+                        if (p.preco == null || p.precoCusto == null || p.precoCusto === 0) return null;
+                        const margem = ((p.preco - p.precoCusto) / p.precoCusto) * 100;
+                        const cor = margem >= 30
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                          : margem >= 10
+                          ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
+                          : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400";
+                        return (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${cor}`}>
+                            {margem >= 0 ? "+" : ""}{margem.toFixed(0)}%
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                       {p.preco != null && (
                         <span className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(p.preco)}</span>
+                      )}
+                      {p.preco != null && p.precoCusto != null && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          lucro: {formatCurrency(p.preco - p.precoCusto)}/un
+                        </span>
                       )}
                     </div>
                   </div>
@@ -406,15 +426,33 @@ function EstoqueContent() {
                     {p.descricao && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">{p.descricao}</p>
                     )}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                      {p.precoCusto != null && <span>Custo: {formatCurrency(p.precoCusto)}</span>}
-                      {p.preco != null && p.precoCusto != null && (
-                        <span>Margem: {(((p.preco - p.precoCusto) / p.precoCusto) * 100).toFixed(1)}%</span>
-                      )}
-                      {p.estoqueMinimo != null && (
-                        <span>Mínimo: {p.estoqueMinimo} {p.unidade ?? "un"}</span>
-                      )}
-                    </div>
+                    {p.preco != null && p.precoCusto != null && (() => {
+                      const lucroUn = p.preco - p.precoCusto;
+                      const margem = p.precoCusto > 0 ? (lucroUn / p.precoCusto) * 100 : 0;
+                      const lucroPotencial = lucroUn * p.estoque;
+                      const corMargem = margem >= 30 ? "text-green-600 dark:text-green-400" : margem >= 10 ? "text-yellow-600 dark:text-yellow-400" : "text-red-500";
+                      return (
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Custo</p>
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{formatCurrency(p.precoCusto)}</p>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Lucro/un</p>
+                            <p className={`text-sm font-bold ${corMargem}`}>{formatCurrency(lucroUn)}</p>
+                            <p className={`text-[10px] font-semibold ${corMargem}`}>{margem.toFixed(1)}%</p>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2 text-center">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Potencial</p>
+                            <p className={`text-sm font-bold ${corMargem}`}>{formatCurrency(lucroPotencial)}</p>
+                            <p className="text-[10px] text-gray-400">{p.estoque} un</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {p.estoqueMinimo != null && (
+                      <p className="text-xs text-gray-400">Mínimo: {p.estoqueMinimo} {p.unidade ?? "un"}</p>
+                    )}
 
                     {/* Stats de vendas */}
                     {(() => {
@@ -422,21 +460,24 @@ function EstoqueContent() {
                       if (stats === undefined) return <p className="text-xs text-gray-400">Carregando...</p>;
                       if (stats === null) return null;
                       return (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl px-3 py-2">
-                            <ShoppingCart size={14} className="text-green-600 dark:text-green-400 shrink-0" />
-                            <div>
-                              <p className="text-[10px] text-green-700 dark:text-green-400 font-semibold uppercase tracking-wide">Vendido</p>
-                              <p className="text-sm font-bold text-gray-900 dark:text-white">{stats.totalVendido} {p.unidade ?? "un"}</p>
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl px-3 py-2">
+                              <ShoppingCart size={14} className="text-green-600 dark:text-green-400 shrink-0" />
+                              <div>
+                                <p className="text-[10px] text-green-700 dark:text-green-400 font-semibold uppercase tracking-wide">Vendido</p>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">{stats.totalVendido} {p.unidade ?? "un"}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-3 py-2">
+                              <Package size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                              <div>
+                                <p className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold uppercase tracking-wide">Receita</p>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(stats.receitaTotal)}</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl px-3 py-2">
-                            <Package size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                            <div>
-                              <p className="text-[10px] text-blue-700 dark:text-blue-400 font-semibold uppercase tracking-wide">Receita</p>
-                              <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(stats.receitaTotal)}</p>
-                            </div>
-                          </div>
+
                         </div>
                       );
                     })()}
@@ -448,6 +489,13 @@ function EstoqueContent() {
                       >
                         <Pencil size={13} />
                         Editar
+                      </button>
+                      <button
+                        onClick={() => { fetchProdutoStats(p); setHistoricoId(p.id); }}
+                        className="flex items-center gap-1.5 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                      >
+                        <ShoppingCart size={13} />
+                        Histórico
                       </button>
                       {(produtoStats[p.id]?.totalVendido ?? 0) > 0 ? (
                         <span className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 cursor-not-allowed" title="Produto com vendas não pode ser excluído">
@@ -594,6 +642,28 @@ function EstoqueContent() {
                 </div>
               </div>
 
+              {(() => {
+                const venda = parseBRL(form.preco);
+                const custo = parseBRL(form.precoCusto);
+                if (!venda || !custo) return null;
+                const lucroUn = venda - custo;
+                const margem = (lucroUn / custo) * 100;
+                const cor = margem >= 30 ? "text-green-600 dark:text-green-400" : margem >= 10 ? "text-yellow-600 dark:text-yellow-400" : "text-red-500";
+                const bg = margem >= 30 ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : margem >= 10 ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800" : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+                return (
+                  <div className={`grid grid-cols-2 gap-2 p-3 rounded-xl border ${bg}`}>
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Lucro/un</p>
+                      <p className={`text-sm font-bold ${cor}`}>{formatCurrency(lucroUn)}</p>
+                    </div>
+                    <div className="text-center border-l border-gray-200 dark:border-gray-700">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-0.5">Margem</p>
+                      <p className={`text-sm font-bold ${cor}`}>{margem.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Estoque Atual</label>
@@ -680,6 +750,62 @@ function EstoqueContent() {
           </div>
         </div>
       )}
+
+      {/* Modal: Histórico de Vendas */}
+      {historicoId != null && (() => {
+        const produto = produtos.find((p) => p.id === historicoId);
+        const stats = produtoStats[historicoId];
+        return (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div className="bg-white dark:bg-gray-900 w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl max-h-[70dvh] flex flex-col">
+              <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                <div>
+                  <h2 className="font-bold text-gray-900 dark:text-white text-sm">Histórico de Vendas</h2>
+                  {produto && <p className="text-xs text-gray-400 mt-0.5">{produto.nome}</p>}
+                </div>
+                <button onClick={() => setHistoricoId(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-3">
+                {stats === undefined ? (
+                  <p className="text-xs text-gray-400 text-center py-8">Carregando...</p>
+                ) : stats === null || stats.transacoes.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-8">Nenhuma venda registrada para este produto.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {stats.transacoes.slice(0, 20).map((t) => (
+                      <div key={t.id} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-gray-400 shrink-0">{new Date(t.data).toLocaleDateString("pt-BR")}</span>
+                          {t.cliente && <span className="text-gray-600 dark:text-gray-300 truncate">{t.cliente.nome}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                          {t.quantidade != null && (
+                            <span className="text-gray-400">{t.quantidade} {produto?.unidade ?? "un"}</span>
+                          )}
+                          <span className="font-semibold text-green-600 dark:text-green-400">{formatCurrency(t.valorTotal)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 shrink-0">
+                <a
+                  href={`/transacoes?tipo=venda&produto=${encodeURIComponent(produto?.nome ?? "")}`}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-700 hover:bg-green-800 text-white text-sm font-bold transition-colors"
+                >
+                  <ShoppingCart size={15} />
+                  Exibir todas as vendas
+                </a>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal: Confirmar exclusão */}
       {deleteId != null && (
