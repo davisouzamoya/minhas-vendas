@@ -2,7 +2,137 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, Settings, Target, Store, Image } from "lucide-react";
+import { CheckCircle, Settings, Target, Store, Image, MessageSquarePlus, Bug, Lightbulb, Heart, Send } from "lucide-react";
+
+const TIPOS_FEEDBACK = [
+  { value: "melhoria", label: "Melhoria", icon: Lightbulb, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20", ring: "ring-blue-500/30" },
+  { value: "bug", label: "Reportar bug", icon: Bug, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20", ring: "ring-red-500/30" },
+  { value: "elogio", label: "Elogio", icon: Heart, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-900/20", ring: "ring-pink-500/30" },
+] as const;
+
+function FeedbackSection() {
+  const [tipo, setTipo] = useState<"melhoria" | "bug" | "elogio">("melhoria");
+  const [titulo, setTitulo] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const res = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo, titulo, mensagem }),
+    });
+    setLoading(false);
+    if (!res.ok) {
+      setError("Não foi possível enviar. Tente novamente.");
+      return;
+    }
+    setSent(true);
+    setTitulo("");
+    setMensagem("");
+    setTimeout(() => setSent(false), 4000);
+  }
+
+  const tipoAtual = TIPOS_FEEDBACK.find((t) => t.value === tipo)!;
+
+  return (
+    <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-full">
+          <MessageSquarePlus size={16} className="text-purple-600 dark:text-purple-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Feedback</p>
+          <p className="text-xs text-gray-400">Sugestões, bugs ou elogios — adoramos ouvir você</p>
+        </div>
+      </div>
+      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Tipo */}
+        <div className="flex gap-2">
+          {TIPOS_FEEDBACK.map(({ value, label, icon: Icon, color, bg, ring }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTipo(value)}
+              className={`flex-1 flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all text-xs font-medium ${
+                tipo === value
+                  ? `${bg} border-transparent ring-2 ${ring} ${color}`
+                  : "border-gray-100 dark:border-gray-800 text-gray-400 hover:border-gray-200 dark:hover:border-gray-700"
+              }`}
+            >
+              <Icon size={18} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Título */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Título *</label>
+          <input
+            type="text"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            placeholder={
+              tipo === "melhoria" ? "Ex: Adicionar exportação em PDF" :
+              tipo === "bug" ? "Ex: Botão de salvar não funciona" :
+              "Ex: Interface muito intuitiva!"
+            }
+            required
+            maxLength={120}
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all"
+          />
+        </div>
+
+        {/* Mensagem */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Detalhes *</label>
+          <textarea
+            value={mensagem}
+            onChange={(e) => setMensagem(e.target.value)}
+            placeholder={
+              tipo === "melhoria" ? "Descreva a funcionalidade que você gostaria de ver..." :
+              tipo === "bug" ? "Como reproduzir o problema? O que aconteceu vs. o que esperava..." :
+              "Conte o que você mais gosta ou o que te ajudou..."
+            }
+            required
+            rows={4}
+            maxLength={1000}
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all resize-none"
+          />
+          <p className="text-xs text-gray-400 mt-1 text-right">{mensagem.length}/1000</p>
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <div className="flex items-center justify-end gap-3">
+          {sent && (
+            <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+              <CheckCircle size={16} /> Feedback enviado, obrigado!
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className={`flex items-center gap-2 px-5 py-2.5 text-white text-sm font-semibold rounded-full transition-colors shadow-sm disabled:opacity-50 ${
+              tipo === "bug" ? "bg-red-500 hover:bg-red-600 shadow-red-500/20" :
+              tipo === "elogio" ? "bg-pink-500 hover:bg-pink-600 shadow-pink-500/20" :
+              "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
+            }`}
+          >
+            <Send size={14} />
+            {loading ? "Enviando..." : "Enviar feedback"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 function PerfilContent() {
   const router = useRouter();
@@ -72,7 +202,8 @@ function PerfilContent() {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 pb-8">
+    <div className="space-y-8 pb-8">
+    <form onSubmit={handleSubmit} className="space-y-8">
 
       {/* Header */}
       <div>
@@ -199,6 +330,11 @@ function PerfilContent() {
       </div>
 
     </form>
+
+    {/* Feedback — fora do form do perfil para evitar form aninhado */}
+    <FeedbackSection />
+
+    </div>
   );
 }
 

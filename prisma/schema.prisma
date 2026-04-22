@@ -79,6 +79,17 @@ model Perfil {
   updatedAt             DateTime  @updatedAt
 }
 
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  tipo      String
+  titulo    String
+  mensagem  String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 model Produto {
   id            Int      @id @default(autoincrement())
   userId        String

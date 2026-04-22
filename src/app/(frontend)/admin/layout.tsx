@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Users, HeartPulse, ChevronLeft } from "lucide-react";
+import { ShieldCheck, Users, HeartPulse, ChevronLeft, MessageSquarePlus } from "lucide-react";
 
 const adminNav = [
   { href: "/admin/suporte", label: "Suporte", icon: Users },
   { href: "/admin/sistema", label: "Saúde do Sistema", icon: HeartPulse },
+  { href: "/admin/feedbacks", label: "Feedbacks", icon: MessageSquarePlus },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

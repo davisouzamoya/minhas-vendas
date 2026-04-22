@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -26,6 +26,12 @@ import {
   Package,
   Lock,
   Zap,
+  AlertTriangle,
+  ShoppingCart,
+  Cake,
+  FileText,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
 import { usePlano } from "@/app/(frontend)/hooks/usePlano";
@@ -235,6 +241,180 @@ function SidebarContent({
   );
 }
 
+type Transaction = {
+  id: number;
+  descricao: string;
+  valorTotal: number;
+  tipo: string;
+  data: string;
+  statusPagamento: string;
+  cliente?: { nome: string } | null;
+};
+
+function NotifDropdown() {
+  const [pendentes, setPendentes] = useState(0);
+  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
+  const [aniversariantes, setAniversariantes] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null),
+      fetch("/api/produtos").then((r) => r.ok ? r.json() : []),
+      fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null),
+    ]).then(([vp, produtos, cs]) => {
+      setPendentes(vp?.count ?? 0);
+      const count = (produtos as { estoque: number; estoqueMinimo: number | null; ativo: boolean }[])
+        .filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length;
+      setEstoqueBaixo(count);
+      setAniversariantes(cs?.aniversariantes ?? 0);
+      setLoading(false);
+    });
+  }, []);
+
+  const total = pendentes + estoqueBaixo + aniversariantes;
+
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <span className="font-semibold text-sm text-gray-900 dark:text-white">Notificações</span>
+        {total > 0 && (
+          <span className="text-xs font-bold bg-red-500 text-white rounded-full px-2 py-0.5">{total}</span>
+        )}
+      </div>
+      <div className="divide-y divide-gray-50 dark:divide-gray-800">
+        {loading ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-400">Carregando...</div>
+        ) : total === 0 ? (
+          <div className="px-4 py-6 flex flex-col items-center gap-2 text-gray-400">
+            <CheckCircle2 size={28} className="text-green-500" />
+            <span className="text-sm">Tudo em ordem por aqui</span>
+          </div>
+        ) : (
+          <>
+            {pendentes > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3">
+                <div className="mt-0.5 w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                  <Clock size={15} className="text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Vendas pendentes</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {pendentes} venda{pendentes !== 1 ? "s" : ""} aguardando pagamento
+                  </p>
+                </div>
+                <span className="ml-auto text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded-full px-2 py-0.5 shrink-0">{pendentes}</span>
+              </div>
+            )}
+            {estoqueBaixo > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3">
+                <div className="mt-0.5 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={15} className="text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Estoque baixo</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {estoqueBaixo} produto{estoqueBaixo !== 1 ? "s" : ""} abaixo do mínimo
+                  </p>
+                </div>
+                <span className="ml-auto text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full px-2 py-0.5 shrink-0">{estoqueBaixo}</span>
+              </div>
+            )}
+            {aniversariantes > 0 && (
+              <div className="flex items-start gap-3 px-4 py-3">
+                <div className="mt-0.5 w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center shrink-0">
+                  <Cake size={15} className="text-pink-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Aniversariantes hoje</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {aniversariantes} cliente{aniversariantes !== 1 ? "s" : ""} fazem aniversário hoje
+                  </p>
+                </div>
+                <span className="ml-auto text-xs font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-full px-2 py-0.5 shrink-0">{aniversariantes}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HistoricoDropdown() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/transactions?limit=5&sortBy=data&sortDir=desc")
+      .then((r) => r.ok ? r.json() : { transactions: [] })
+      .then((d) => {
+        setTransactions(d.transactions ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  function formatCurrency(val: number) {
+    return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function formatDate(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+  }
+
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+        <span className="font-semibold text-sm text-gray-900 dark:text-white">Últimas vendas</span>
+      </div>
+      <div className="divide-y divide-gray-50 dark:divide-gray-800">
+        {loading ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-400">Carregando...</div>
+        ) : transactions.length === 0 ? (
+          <div className="px-4 py-6 flex flex-col items-center gap-2 text-gray-400">
+            <ShoppingCart size={28} />
+            <span className="text-sm">Nenhuma venda registrada</span>
+          </div>
+        ) : (
+          transactions.map((t) => (
+            <div key={t.id} className="flex items-center gap-3 px-4 py-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                t.tipo === "venda"
+                  ? "bg-green-100 dark:bg-green-900/30"
+                  : "bg-red-100 dark:bg-red-900/30"
+              }`}>
+                {t.tipo === "venda"
+                  ? <ShoppingCart size={14} className="text-green-600 dark:text-green-400" />
+                  : <FileText size={14} className="text-red-500" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {t.descricao || t.cliente?.nome || "—"}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
+                  <span>{formatDate(t.data)}</span>
+                  {t.statusPagamento === "pendente" && (
+                    <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none">
+                      Pendente
+                    </span>
+                  )}
+                </p>
+              </div>
+              <span className={`text-sm font-semibold shrink-0 ${
+                t.tipo === "venda" ? "text-green-600 dark:text-green-400" : "text-red-500"
+              }`}>
+                {t.tipo === "despesa" ? "−" : "+"}{formatCurrency(t.valorTotal)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AppHeader({ onMobileMenuOpen }: {
   onMobileMenuOpen: () => void;
 }) {
@@ -243,8 +423,16 @@ function AppHeader({ onMobileMenuOpen }: {
   const [logoUrl, setLogoUrl] = useState("");
   const [userLabel, setUserLabel] = useState("");
   const [pendentes, setPendentes] = useState(0);
+  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
+  const [aniversariantes, setAniversariantes] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
   const pathname = usePathname();
   const [busca, setBusca] = useState("");
+  const notifRef = useRef<HTMLDivElement>(null);
+  const histRef = useRef<HTMLDivElement>(null);
+
+  const totalNotif = pendentes + estoqueBaixo + aniversariantes;
 
   const searchBase = pathname.startsWith("/fornecedores")
     ? "/fornecedores"
@@ -278,12 +466,8 @@ function AppHeader({ onMobileMenuOpen }: {
     ? "Buscar cliente ou produto..."
     : "Buscar...";
 
-  // Limpa busca ao trocar de página pesquisável
-  useEffect(() => {
-    setBusca("");
-  }, [searchBase]);
+  useEffect(() => { setBusca(""); }, [searchBase]);
 
-  // Debounce: navega com ?q= 300ms após parar de digitar
   useEffect(() => {
     if (!searchBase) return;
     const t = setTimeout(() => {
@@ -297,13 +481,28 @@ function AppHeader({ onMobileMenuOpen }: {
   }, [busca]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (histRef.current && !histRef.current.contains(e.target as Node)) setHistOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function fetchNotifCounts() {
+    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
+    fetch("/api/produtos").then((r) => r.ok ? r.json() : []).then((produtos: { estoque: number; estoqueMinimo: number | null; ativo: boolean }[]) => {
+      setEstoqueBaixo(produtos.filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length);
+    });
+    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => setAniversariantes(d?.aniversariantes ?? 0));
+  }
+
+  useEffect(() => {
     fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
       setNomeNegocio(d?.nomeNegocio ?? "");
       setLogoUrl(d?.logoUrl ?? "");
     });
-    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => {
-      setPendentes(d?.count ?? 0);
-    });
+    fetchNotifCounts();
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       const email = data.user?.email ?? "";
@@ -317,9 +516,7 @@ function AppHeader({ onMobileMenuOpen }: {
         setLogoUrl(d?.logoUrl ?? "");
       });
     });
-    window.addEventListener("vendas-pendentes-updated", () => {
-      fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
-    });
+    window.addEventListener("vendas-pendentes-updated", fetchNotifCounts);
   }, []);
 
   return (
@@ -331,7 +528,6 @@ function AppHeader({ onMobileMenuOpen }: {
       >
         <Menu size={22} />
       </button>
-
 
       {/* Mobile: logo ou título da página */}
       <div className="flex items-center gap-2 lg:hidden">
@@ -359,7 +555,7 @@ function AppHeader({ onMobileMenuOpen }: {
         })()}
       </div>
 
-      {/* Search — desktop only, visível em clientes e fornecedores */}
+      {/* Search — desktop only */}
       <div className={`items-center flex-1 max-w-sm ${searchBase ? "hidden lg:flex" : "hidden"}`}>
         <div className="relative w-full">
           <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -376,25 +572,33 @@ function AppHeader({ onMobileMenuOpen }: {
       {/* Right side */}
       <div className="flex items-center gap-2 lg:gap-4 ml-auto">
         {/* Notificações */}
-        <Link
-          href="/relatorios"
-          className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-          title="Notificações"
-        >
-          <Bell size={20} />
-          {pendentes > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-          )}
-        </Link>
+        <div className="relative" ref={notifRef}>
+          <button
+            onClick={() => { setNotifOpen((o) => !o); setHistOpen(false); }}
+            className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            title="Notificações"
+          >
+            <Bell size={20} />
+            {totalNotif > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1 leading-none">
+                {totalNotif}
+              </span>
+            )}
+          </button>
+          {notifOpen && <NotifDropdown />}
+        </div>
 
         {/* Histórico */}
-        <Link
-          href="/transacoes"
-          className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-          title="Histórico de vendas"
-        >
-          <History size={20} />
-        </Link>
+        <div className="relative" ref={histRef}>
+          <button
+            onClick={() => { setHistOpen((o) => !o); setNotifOpen(false); }}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            title="Histórico de vendas"
+          >
+            <History size={20} />
+          </button>
+          {histOpen && <HistoricoDropdown />}
+        </div>
 
         {/* Separador */}
         <div className="hidden lg:block h-8 w-px bg-gray-200 dark:bg-gray-700" />
