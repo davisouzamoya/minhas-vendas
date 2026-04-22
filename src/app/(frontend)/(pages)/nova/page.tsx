@@ -678,7 +678,7 @@ function NovaVendaContent() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                 rows={5}
                 placeholder="Algum detalhe importante sobre essa venda?"
-                className={inputCls + " resize-none h-full min-h-[120px]"}
+                className={inputCls + " resize-none min-h-[120px]"}
               />
             </div>
           </div>

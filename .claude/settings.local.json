@@ -31,7 +31,9 @@
       "Read(//usr/local/bin/**)",
       "Bash(curl -L https://github.com/stripe/stripe-cli/releases/download/v1.23.3/stripe_1.23.3_mac-os_arm64.tar.gz)",
       "Bash(tar -xz)",
-      "Bash(sudo mv *)"
+      "Bash(sudo mv *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/feedback -H 'Content-Type: application/json' -d '{\"tipo\":\"melhoria\",\"titulo\":\"teste\",\"mensagem\":\"teste mensagem\"}')",
+      "Bash(node *)"
     ]
   }
 }
