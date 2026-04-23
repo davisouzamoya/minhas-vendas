@@ -74,6 +74,8 @@ function FluxoDeCaixaContent() {
   const [maioresVendas, setMaioresVendas] = useState<TopItem[]>([]);
   const [maioresGastos, setMaioresGastos] = useState<TopItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [periodo, setPeriodo] = useState<"mes" | "semana">("mes");
   const [dataInicio, setDataInicio] = useState(defaultInicio);
   const [dataFim, setDataFim] = useState(defaultFim);
@@ -83,16 +85,18 @@ function FluxoDeCaixaContent() {
 
   useEffect(() => {
     setLoading(true);
+    setError(false);
     const params = new URLSearchParams({ periodo, dataInicio, dataFim });
     fetch(`/api/fluxo-de-caixa?${params}`)
-      .then((r) => r.ok ? r.json() : { rows: [] })
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setRows(d.rows ?? []);
         setMaioresVendas(d.maioresVendas ?? []);
         setMaioresGastos(d.maioresGastos ?? []);
         setLoading(false);
-      });
-  }, [periodo, dataInicio, dataFim]);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [periodo, dataInicio, dataFim, retryKey]);
 
   const totalEntradas = rows.reduce((s, r) => s + r.entradas, 0);
   const totalSaidas = rows.reduce((s, r) => s + r.saidas, 0);
@@ -117,13 +121,20 @@ function FluxoDeCaixaContent() {
     URL.revokeObjectURL(url);
   }
 
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => setRetryKey((k) => k + 1)} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
+
   if (loading) return (
     <div className="space-y-8 animate-pulse">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-9 w-44 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="h-9 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
         </div>
         <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
       </div>
@@ -139,7 +150,7 @@ function FluxoDeCaixaContent() {
       </div>
       {/* Chart */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6">
-        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+        <div className="h-6 w-2/5 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
         <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
       </div>
       {/* Two panels */}
@@ -147,14 +158,14 @@ function FluxoDeCaixaContent() {
         {[...Array(2)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-              <div className="h-5 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-5 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {[...Array(4)].map((_, j) => (
                 <div key={j} className="px-6 py-3 flex items-center gap-3">
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
-                    <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                    <div className="h-4 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                    <div className="h-3 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
                   </div>
                   <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
                 </div>

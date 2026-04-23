@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
 import {
   CheckCircle,
-  X,
   AlertTriangle,
   ShoppingCart,
   Receipt,
   Link2,
 } from "lucide-react";
-import { createClient } from "@/app/(backend)/lib/supabase/client";
 
 function maskBRL(value: string): string {
   const digits = value.replace(/\D/g, "");
@@ -63,6 +61,16 @@ const inputCls =
 const selectCls =
   "w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all appearance-none";
 
+type ProdutoEstoque = { id: number; nome: string; preco: number | null; categoria: string | null; estoque: number | null };
+
+const NOVA_TTL = 60_000;
+const novaCache = {
+  clientes:     null as { data: Cliente[]; at: number } | null,
+  fornecedores: null as { data: Fornecedor[]; at: number } | null,
+  categorias:   null as { data: string[]; at: number } | null,
+  produtos:     null as { data: ProdutoEstoque[]; at: number } | null,
+};
+
 function NovaVendaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,16 +78,17 @@ function NovaVendaContent() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [divida, setDivida] = useState<{ total: number; count: number } | null>(null);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>(() => novaCache.clientes?.data ?? []);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>(() => novaCache.fornecedores?.data ?? []);
   const [hasDraft, setHasDraft] = useState(false);
   const [ultimaCompra, setUltimaCompra] = useState<null | { produto: string | null; categoria: string | null; valor_total: string; forma_pagamento: string; clienteId: string }>(null);
-  const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
+  const [categorias, setCategorias] = useState<string[]>(() => novaCache.categorias?.data ?? DEFAULT_CATEGORIAS);
   const [novaCat, setNovaCat] = useState("");
   const [showAddCat, setShowAddCat] = useState(false);
-  const [produtosEstoque, setProdutosEstoque] = useState<{ id: number; nome: string; preco: number | null; categoria: string | null; estoque: number | null }[]>([]);
+  const [produtosEstoque, setProdutosEstoque] = useState<ProdutoEstoque[]>(() => novaCache.produtos?.data ?? []);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const supabase = createClient();
+  const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   const [form, setForm] = useState(defaultForm);
 
@@ -99,15 +108,28 @@ function NovaVendaContent() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
-    fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
-    fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
-    fetch("/api/produtos?ativos=1").then((r) => r.ok ? r.json() : []).then(setProdutosEstoque);
+    const controller = new AbortController();
+    const { signal } = controller;
+    const now = Date.now();
+
+    const onFetchError = (e: unknown) => {
+      if (e instanceof Error && e.name === "AbortError") return;
+      setError(true);
+    };
+
+    if (!novaCache.clientes || now - novaCache.clientes.at >= NOVA_TTL)
+      fetch("/api/clientes", { signal }).then((r) => r.ok ? r.json() : []).then((d) => { novaCache.clientes = { data: d, at: Date.now() }; setClientes(d); }).catch(onFetchError);
+    if (!novaCache.fornecedores || now - novaCache.fornecedores.at >= NOVA_TTL)
+      fetch("/api/fornecedores", { signal }).then((r) => r.ok ? r.json() : []).then((d) => { novaCache.fornecedores = { data: d, at: Date.now() }; setFornecedores(d); }).catch(onFetchError);
+    if (!novaCache.categorias || now - novaCache.categorias.at >= NOVA_TTL)
+      fetch("/api/categorias", { signal }).then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then((d) => { novaCache.categorias = { data: d, at: Date.now() }; setCategorias(d); }).catch(onFetchError);
+    if (!novaCache.produtos || now - novaCache.produtos.at >= NOVA_TTL)
+      fetch("/api/produtos?ativos=1", { signal }).then((r) => r.ok ? r.json() : []).then((d) => { novaCache.produtos = { data: d, at: Date.now() }; setProdutosEstoque(d); }).catch(onFetchError);
+
     const clienteIdParam = searchParams.get("clienteId");
     if (clienteIdParam) {
       setForm((prev) => ({ ...prev, clienteId: clienteIdParam }));
-      // Busca última compra do cliente
-      fetch(`/api/transactions?clienteId=${clienteIdParam}&limit=1`)
+      fetch(`/api/transactions?clienteId=${clienteIdParam}&limit=1`, { signal })
         .then((r) => r.ok ? r.json() : null)
         .then((d) => {
           const t = d?.transactions?.[0];
@@ -120,9 +142,12 @@ function NovaVendaContent() {
               clienteId: clienteIdParam,
             });
           }
-        });
+        })
+        .catch(onFetchError);
     }
-  }, []);
+
+    return () => controller.abort();
+  }, [retryKey]);
 
   useEffect(() => {
     if (!form.clienteId || form.tipo !== "venda") { setDivida(null); return; }
@@ -139,7 +164,7 @@ function NovaVendaContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nome }),
     });
-    if (res.ok) { setCategorias(await res.json()); setNovaCat(""); }
+    if (res.ok) { const updated = await res.json(); novaCache.categorias = { data: updated, at: Date.now() }; setCategorias(updated); setNovaCat(""); }
   }
 
   async function removeCategoria(nome: string) {
@@ -150,6 +175,7 @@ function NovaVendaContent() {
     });
     if (res.ok) {
       const updated = await res.json();
+      novaCache.categorias = { data: updated, at: Date.now() };
       setCategorias(updated);
       if (form.categoria === nome) set("categoria", "");
     }
@@ -157,7 +183,7 @@ function NovaVendaContent() {
 
   useEffect(() => {
     if (form.produto || form.valor_total || form.observacoes) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+      try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)); } catch { /* storage indisponível */ }
     }
   }, [form]);
 
@@ -205,9 +231,20 @@ function NovaVendaContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.valor_total) return;
+    const valorTotal = parseBRL(form.valor_total);
+    if (!valorTotal || valorTotal <= 0) {
+      showToast("Valor total inválido. Digite um valor maior que zero.");
+      return;
+    }
+    const dataValida = /^\d{4}-\d{2}-\d{2}$/.test(form.data) && !isNaN(Date.parse(form.data));
+    if (!dataValida) {
+      showToast("Data inválida. Use o formato DD/MM/AAAA.");
+      return;
+    }
     setLoading(true);
-    const res = await fetch("/api/transactions", {
+    let res: Response;
+    try {
+      res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -215,7 +252,7 @@ function NovaVendaContent() {
         descricao: form.produto || form.tipo,
         quantidade: form.quantidade ? parseFloat(form.quantidade) : null,
         valor_unitario: form.valor_unitario ? parseBRL(form.valor_unitario) : null,
-        valor_total: parseBRL(form.valor_total),
+        valor_total: valorTotal,
         produto: form.produto || null,
         categoria: form.categoria || null,
         forma_pagamento: form.forma_pagamento || null,
@@ -229,18 +266,45 @@ function NovaVendaContent() {
         meses: form.recorrente ? form.meses : 1,
       }),
     });
+    } catch {
+      setLoading(false);
+      showToast("Erro de conexão. Tente novamente.");
+      return;
+    }
     setLoading(false);
     if (res.ok) {
+      novaCache.produtos = null;
       localStorage.removeItem(DRAFT_KEY);
       setSuccess(true);
       setTimeout(() => router.push(onboarding ? "/clientes?onboarding=1" : "/transacoes"), 1500);
+    } else {
+      showToast("Erro ao salvar. Tente novamente.");
     }
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <AlertTriangle size={40} className="text-red-400" />
+        <p className="text-base font-semibold text-gray-800 dark:text-gray-100">Erro ao carregar dados</p>
+        <button
+          onClick={() => { setError(false); setRetryKey((k) => k + 1); }}
+          className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-full transition-colors"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
   }
 
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
-        <CheckCircle size={56} className="text-green-500" />
+        <div className="animate-bounce">
+          <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle size={44} className="text-green-500" />
+          </div>
+        </div>
         <p className="text-xl font-semibold text-gray-800 dark:text-gray-100">{form.tipo === "despesa" ? "Despesa registrada!" : "Venda registrada!"}</p>
         <p className="text-sm text-gray-400">Redirecionando...</p>
       </div>
@@ -683,6 +747,30 @@ function NovaVendaContent() {
             </div>
           </div>
         </div>
+
+        {/* Resumo antes de enviar */}
+        {parseBRL(form.valor_total) > 0 && (
+          <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-4 flex flex-wrap gap-x-6 gap-y-2 text-xs text-gray-600 dark:text-gray-400">
+            <span className="font-semibold text-gray-900 dark:text-white text-sm">
+              {form.tipo === "despesa" ? "Despesa" : "Venda"}{form.produto ? `: ${form.produto}` : ""}
+            </span>
+            <span className="font-bold text-green-700 dark:text-green-400 text-sm">
+              {parseBRL(form.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
+            {form.forma_pagamento && <span>Pagamento: <span className="font-medium text-gray-800 dark:text-gray-200 capitalize">{form.forma_pagamento}</span></span>}
+            {form.tipo === "venda" && form.statusPagamento && (
+              <span className={`font-semibold ${form.statusPagamento === "pago" ? "text-green-600" : "text-amber-500"}`}>
+                {form.statusPagamento === "pago" ? "Recebido" : "Pendente"}
+              </span>
+            )}
+            {form.clienteId && clientes.find((c) => String(c.id) === form.clienteId) && (
+              <span>Cliente: <span className="font-medium text-gray-800 dark:text-gray-200">{clientes.find((c) => String(c.id) === form.clienteId)!.nome}</span></span>
+            )}
+            {form.fornecedorId && fornecedores.find((f) => String(f.id) === form.fornecedorId) && (
+              <span>Fornecedor: <span className="font-medium text-gray-800 dark:text-gray-200">{fornecedores.find((f) => String(f.id) === form.fornecedorId)!.nome}</span></span>
+            )}
+          </div>
+        )}
 
         {/* Action footer */}
         <div className="flex items-center justify-end gap-3 sm:gap-6 pt-2">

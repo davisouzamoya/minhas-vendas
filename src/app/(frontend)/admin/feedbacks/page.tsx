@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lightbulb, Bug, Heart, MessageSquarePlus, Search } from "lucide-react";
+import { Lightbulb, Bug, Heart, MessageSquarePlus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PER_PAGE = 10;
 
 interface FeedbackItem {
   id: number;
@@ -28,12 +30,16 @@ export default function AdminFeedbacks() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<"todos" | "melhoria" | "bug" | "elogio">("todos");
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     fetch("/api/admin/feedbacks")
       .then((r) => r.ok ? r.json() : [])
       .then((d) => { setFeedbacks(d); setLoading(false); });
   }, []);
+
+  // Reseta página ao mudar filtro ou busca
+  useEffect(() => { setPagina(1); }, [filtro, busca]);
 
   const counts = {
     todos: feedbacks.length,
@@ -50,6 +56,9 @@ export default function AdminFeedbacks() {
     }
     return true;
   });
+
+  const totalPaginas = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginados = filtered.slice((pagina - 1) * PER_PAGE, pagina * PER_PAGE);
 
   return (
     <div>
@@ -103,31 +112,70 @@ export default function AdminFeedbacks() {
           <p className="text-sm">Nenhum feedback encontrado</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((f) => {
-            const cfg = TIPO_CONFIG[f.tipo];
-            return (
-              <div key={f.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0`}>
-                    <cfg.icon size={15} className={cfg.color} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
-                        {cfg.label}
-                      </span>
-                      <span className="text-xs text-gray-500">{f.nomeNegocio}</span>
-                      <span className="text-xs text-gray-600 ml-auto">{formatDate(f.createdAt)}</span>
+        <>
+          <div className="space-y-3">
+            {paginados.map((f) => {
+              const cfg = TIPO_CONFIG[f.tipo];
+              return (
+                <div key={f.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0`}>
+                      <cfg.icon size={15} className={cfg.color} />
                     </div>
-                    <p className="text-sm font-semibold text-gray-100 mb-1">{f.titulo}</p>
-                    <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{f.mensagem}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color} ${cfg.border}`}>
+                          {cfg.label}
+                        </span>
+                        <span className="text-xs text-gray-500">{f.nomeNegocio}</span>
+                        <span className="text-xs text-gray-600 ml-auto">{formatDate(f.createdAt)}</span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-100 mb-1">{f.titulo}</p>
+                      <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{f.mensagem}</p>
+                    </div>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-xs text-gray-500">
+                {(pagina - 1) * PER_PAGE + 1}–{Math.min(pagina * PER_PAGE, filtered.length)} de {filtered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPagina((p) => p - 1)}
+                  disabled={pagina === 1}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPagina(p)}
+                    className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+                      p === pagina
+                        ? "bg-green-900/40 text-green-400"
+                        : "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPagina((p) => p + 1)}
+                  disabled={pagina === totalPaginas}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-200 hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

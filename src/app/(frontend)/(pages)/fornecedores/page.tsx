@@ -203,20 +203,36 @@ function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
   );
 }
 
+const FORNECEDORES_TTL = 60_000;
+let fornecedoresListCache: { data: Fornecedor[]; at: number } | null = null;
+
 function FornecedoresContent() {
-  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>(() => fornecedoresListCache?.data ?? []);
+  const [loading, setLoading] = useState(!fornecedoresListCache);
+  const [error, setError] = useState(false);
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
   const [selected, setSelected] = useState<Fornecedor | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [historicoFornecedor, setHistoricoFornecedor] = useState<Fornecedor | null>(null);
   const [busca, setBusca] = useState("");
 
-  async function load() {
-    const res = await fetch("/api/fornecedores");
-    if (!res.ok) return;
-    setFornecedores(await res.json());
-    setLoading(false);
+  async function load(force = false) {
+    if (!force && fornecedoresListCache && Date.now() - fornecedoresListCache.at < FORNECEDORES_TTL) {
+      setFornecedores(fornecedoresListCache.data);
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/fornecedores");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      fornecedoresListCache = { data, at: Date.now() };
+      setFornecedores(data);
+      setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -225,8 +241,15 @@ function FornecedoresContent() {
     if (!deleteId) return;
     await fetch(`/api/fornecedores/${deleteId}`, { method: "DELETE" });
     setDeleteId(null);
-    load();
+    load(true);
   }
+
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => { setError(false); load(); }} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
 
   const q = busca.toLowerCase();
   const filtrados = q
@@ -242,12 +265,12 @@ function FornecedoresContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="h-9 w-2/3 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
         </div>
         <div className="flex gap-3 flex-1 sm:justify-end">
           <div className="h-11 w-full sm:w-48 bg-gray-100 dark:bg-gray-800 rounded-full" />
-          <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full shrink-0" />
+          <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full shrink-0" />
         </div>
       </div>
       {/* Stat card */}
@@ -270,10 +293,10 @@ function FornecedoresContent() {
                 ))}
               </div>
             </div>
-            <div className="h-5 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
+            <div className="h-5 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
             <div className="space-y-2">
-              <div className="h-4 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
-              <div className="h-4 w-40 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-3/5 bg-gray-100 dark:bg-gray-800 rounded" />
             </div>
           </div>
         ))}
@@ -286,7 +309,7 @@ function FornecedoresContent() {
       {(modal === "new" || modal === "edit") && (
         <FornecedorModal
           fornecedor={modal === "edit" ? selected ?? undefined : undefined}
-          onSave={() => { setModal(null); load(); }}
+          onSave={() => { setModal(null); load(true); }}
           onCancel={() => setModal(null)}
         />
       )}

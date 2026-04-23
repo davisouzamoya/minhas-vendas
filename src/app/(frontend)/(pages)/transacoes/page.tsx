@@ -394,11 +394,20 @@ function exportToCsv(transactions: Transaction[]) {
   URL.revokeObjectURL(url);
 }
 
+// --- Static filter data cache ---
+const TRANSACOES_STATIC_TTL = 60_000;
+const transacoesStaticCache = {
+  clientes:     null as { data: Pessoa[]; at: number } | null,
+  fornecedores: null as { data: Pessoa[]; at: number } | null,
+  categorias:   null as { data: string[]; at: number } | null,
+};
+
 // --- Main Page ---
 function TransacoesContent() {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [total, setTotal] = useState(0);
   const [totais, setTotais] = useState<Totais | null>(null);
   const [page, setPage] = useState(1);
@@ -419,9 +428,9 @@ function TransacoesContent() {
   const [sortDir, setSortDir] = useState("desc");
   const [agrupar, setAgrupar] = useState<"" | "dia" | "mes">("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [clientes, setClientes] = useState<Pessoa[]>([]);
-  const [fornecedores, setFornecedores] = useState<Pessoa[]>([]);
-  const [categorias, setCategorias] = useState<string[]>(DEFAULT_CATEGORIAS);
+  const [clientes, setClientes] = useState<Pessoa[]>(() => transacoesStaticCache.clientes?.data ?? []);
+  const [fornecedores, setFornecedores] = useState<Pessoa[]>(() => transacoesStaticCache.fornecedores?.data ?? []);
+  const [categorias, setCategorias] = useState<string[]>(() => transacoesStaticCache.categorias?.data ?? DEFAULT_CATEGORIAS);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [duplicateTarget, setDuplicateTarget] = useState<Transaction | null>(null);
   const [compacto, setCompacto] = useState(false);
@@ -433,9 +442,13 @@ function TransacoesContent() {
   const limit = 15;
 
   useEffect(() => {
-    fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then(setClientes);
-    fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then(setFornecedores);
-    fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then(setCategorias);
+    const now = Date.now();
+    if (!transacoesStaticCache.clientes || now - transacoesStaticCache.clientes.at >= TRANSACOES_STATIC_TTL)
+      fetch("/api/clientes").then((r) => r.ok ? r.json() : []).then((d) => { transacoesStaticCache.clientes = { data: d, at: Date.now() }; setClientes(d); });
+    if (!transacoesStaticCache.fornecedores || now - transacoesStaticCache.fornecedores.at >= TRANSACOES_STATIC_TTL)
+      fetch("/api/fornecedores").then((r) => r.ok ? r.json() : []).then((d) => { transacoesStaticCache.fornecedores = { data: d, at: Date.now() }; setFornecedores(d); });
+    if (!transacoesStaticCache.categorias || now - transacoesStaticCache.categorias.at >= TRANSACOES_STATIC_TTL)
+      fetch("/api/categorias").then((r) => r.ok ? r.json() : DEFAULT_CATEGORIAS).then((d) => { transacoesStaticCache.categorias = { data: d, at: Date.now() }; setCategorias(d); });
   }, []);
 
   const buildParams = useCallback((overrides: Record<string, string> = {}) => {
@@ -452,13 +465,19 @@ function TransacoesContent() {
   }, [page, tipo, categoria, statusFilter, dataInicio, dataFim, clienteId, fornecedorId, sortBy, sortDir]);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/transactions?${buildParams()}`);
-    const json = await res.json();
-    setTransactions(json.transactions);
-    setTotal(json.total);
-    setTotais(json.totais ?? null);
-    setSelected(new Set());
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/transactions?${buildParams()}`);
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setTransactions(json.transactions);
+      setTotal(json.total);
+      setTotais(json.totais ?? null);
+      setSelected(new Set());
+      setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }, [buildParams]);
 
   useEffect(() => { load(); }, [load]);
@@ -714,15 +733,22 @@ function TransacoesContent() {
     );
   }
 
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => { setError(false); load(); }} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
+
   if (loading) return (
   <div className="space-y-6 animate-pulse">
     {/* Header */}
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
       <div className="space-y-2">
-        <div className="h-9 w-32 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-        <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        <div className="h-9 w-1/3 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
       </div>
-      <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+      <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
     </div>
     {/* Summary cards */}
     <div className="flex gap-4 overflow-x-auto pb-1">
@@ -744,16 +770,16 @@ function TransacoesContent() {
     {/* Table */}
     <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex gap-4">
-        <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
-        <div className="h-5 w-24 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
+        <div className="h-5 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
+        <div className="h-5 w-1/4 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
       </div>
       <div className="divide-y divide-gray-100 dark:divide-gray-800">
         {[...Array(8)].map((_, i) => (
           <div key={i} className="px-6 py-4 flex items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
             <div className="flex-1 space-y-1.5">
-              <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
-              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-4 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
             </div>
             <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
             <div className="h-6 w-16 bg-gray-100 dark:bg-gray-800 rounded-full shrink-0" />

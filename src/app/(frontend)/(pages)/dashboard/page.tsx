@@ -5,43 +5,71 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import OnboardingChecklist from "@/app/(frontend)/components/OnboardingChecklist";
 import {
+  ResponsiveContainer,
+  LineChart as RechartsLineChart,
+  Line,
+  XAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import {
   TrendingUp, TrendingDown, Wallet, ArrowDownCircle,
   Cake, Phone, UserX, MessageCircle, ShoppingCart,
   Receipt, Target, Sparkles,
 } from "lucide-react";
+
+// Cache client-side: evita re-fetch ao navegar de volta ao dashboard
+const DASHBOARD_TTL = 60_000;
+let dashboardCache: { data: DashboardData; at: number } | null = null;
+
 function LineChart({ data }: { data: { mes: string; vendas: number; despesas: number }[] }) {
   if (data.length < 2) return null;
-  const W = 800, H = 200;
-  const PAD = { top: 20, right: 20, bottom: 10, left: 10 };
-  const maxVal = Math.max(...data.flatMap((d) => [d.vendas, d.despesas]), 1);
-  const xScale = (i: number) => PAD.left + (i / (data.length - 1)) * (W - PAD.left - PAD.right);
-  const yScale = (v: number) => PAD.top + (1 - v / maxVal) * (H - PAD.top - PAD.bottom);
-  function smoothPath(pts: [number, number][]) {
-    let d = `M${pts[0][0]},${pts[0][1]}`;
-    for (let i = 1; i < pts.length; i++) {
-      const cpx = (pts[i - 1][0] + pts[i][0]) / 2;
-      d += ` C${cpx},${pts[i - 1][1]} ${cpx},${pts[i][1]} ${pts[i][0]},${pts[i][1]}`;
-    }
-    return d;
-  }
-  const vendasPts = data.map((d, i) => [xScale(i), yScale(d.vendas)] as [number, number]);
-  const despesasPts = data.map((d, i) => [xScale(i), yScale(d.despesas)] as [number, number]);
-  const gridYs = [0.25, 0.5, 0.75].map((f) => yScale(f * maxVal));
   return (
-    <div className="flex-1 flex flex-col">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 200 }} overflow="visible">
-        {gridYs.map((y, i) => (
-          <line key={i} x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke="#9ca3af" strokeDasharray="4" strokeWidth="1" opacity="0.3" />
-        ))}
-        <path d={smoothPath(despesasPts)} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="8 4" strokeLinecap="round" />
-        <path d={smoothPath(vendasPts)} fill="none" stroke="#16a34a" strokeWidth="3.5" strokeLinecap="round" />
-        {vendasPts.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r="5" fill="#16a34a" />
-        ))}
-      </svg>
-      <div className="flex justify-between mt-3 px-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-        {data.map((d) => <span key={d.mes}>{d.mes}</span>)}
-      </div>
+    <div className="w-full" style={{ height: 220 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="4" stroke="#9ca3af" opacity={0.3} vertical={false} />
+          <XAxis
+            dataKey="mes"
+            tick={{ fontSize: 10, fontWeight: 700, fill: "#9ca3af" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            formatter={(value) =>
+              typeof value === "number"
+                ? value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : value
+            }
+            contentStyle={{
+              background: "#111827",
+              border: "none",
+              borderRadius: "0.75rem",
+              fontSize: 12,
+            }}
+            labelStyle={{ color: "#e5e7eb", fontWeight: 700 }}
+            itemStyle={{ color: "#e5e7eb" }}
+          />
+          <Line
+            type="monotone"
+            dataKey="vendas"
+            stroke="#16a34a"
+            strokeWidth={3.5}
+            dot={{ fill: "#16a34a", r: 5, strokeWidth: 0 }}
+            activeDot={{ r: 6 }}
+            name="Vendas"
+          />
+          <Line
+            type="monotone"
+            dataKey="despesas"
+            stroke="#dc2626"
+            strokeWidth={2}
+            strokeDasharray="8 4"
+            dot={false}
+            name="Despesas"
+          />
+        </RechartsLineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -112,21 +140,39 @@ function Variacao({ variacao, invertido = false }: { variacao: number; invertido
 function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [tipoFiltro, setTipoFiltro] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const busca = searchParams.get("q")?.toLowerCase() ?? "";
   const [onboardingCompleto, setOnboardingCompleto] = useState(false);
   const handleOnboardingComplete = useCallback(() => setOnboardingCompleto(true), []);
 
-  const loadDashboard = useCallback(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then((d) => {
-      setData(d);
-      setOnboardingCompleto(d?.onboarding?.completo ?? false);
+  const loadDashboard = useCallback((force = false) => {
+    if (!force && dashboardCache && Date.now() - dashboardCache.at < DASHBOARD_TTL) {
+      setData(dashboardCache.data);
+      setOnboardingCompleto(dashboardCache.data?.onboarding?.completo ?? false);
       setLoading(false);
-    });
+      return;
+    }
+    fetch("/api/dashboard")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((d) => {
+        dashboardCache = { data: d, at: Date.now() };
+        setData(d);
+        setOnboardingCompleto(d?.onboarding?.completo ?? false);
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
   }, []);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  // Invalida cache quando uma nova venda é registrada
+  useEffect(() => {
+    function onUpdate() { loadDashboard(true); }
+    window.addEventListener("vendas-pendentes-updated", onUpdate);
+    return () => window.removeEventListener("vendas-pendentes-updated", onUpdate);
+  }, [loadDashboard]);
 
   const cards = data
     ? [
@@ -179,7 +225,6 @@ function DashboardContent() {
     return true;
   });
 
-  // Meta mensal
   const meta = data?.metaMensal ?? null;
   const vendasMes = data?.comparativo.vendas.atual ?? 0;
   const progressoPct = meta && meta > 0 ? Math.min(100, Math.round((vendasMes / meta) * 100)) : 0;
@@ -187,14 +232,19 @@ function DashboardContent() {
 
   const primeiroNome = data?.nomeNegocio?.split(" ")[0] ?? "empreendedor";
 
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => { setError(false); loadDashboard(true); }} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
+
   if (loading) return (
     <div className="space-y-8 animate-pulse">
-      {/* Greeting */}
       <div className="space-y-2">
-        <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-        <div className="h-4 w-72 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        <div className="h-9 w-2/3 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
       </div>
-      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {[...Array(4)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 flex flex-col gap-3" style={{ borderRadius: "1.5rem 0.5rem 1.5rem 0.5rem" }}>
@@ -206,23 +256,21 @@ function DashboardContent() {
           </div>
         ))}
       </div>
-      {/* Chart */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-6">
-        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+        <div className="h-6 w-2/5 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
         <div className="h-48 bg-gray-100 dark:bg-gray-800 rounded-2xl" />
       </div>
-      {/* Recent sales */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="h-6 w-36 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="h-6 w-1/3 bg-gray-200 dark:bg-gray-700 rounded-lg" />
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="px-6 py-4 flex items-center gap-4">
               <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
-                <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                <div className="h-4 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
               </div>
               <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
             </div>

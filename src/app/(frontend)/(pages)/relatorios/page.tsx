@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useState, useContext, useCallback, useRef } from "react";
+import { AppContext } from "@/app/(frontend)/components/AppContext";
 import { useSearchParams } from "next/navigation";
 import { Printer, AlertTriangle, CheckCircle2, MessageCircle, TrendingUp, TrendingDown, ArrowDownCircle, CreditCard } from "lucide-react";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
@@ -17,7 +18,6 @@ interface ReportData {
   porFormaPagamento: { forma: string; total: number; count: number }[];
 }
 
-interface Perfil { nomeNegocio: string; logoUrl: string | null; }
 
 const COLORS = ["#16a34a", "#dc2626", "#2563eb", "#d97706", "#7c3aed", "#0891b2"];
 
@@ -128,8 +128,9 @@ function cobrarWhatsApp(nome: string, total: number, count: number, telefone: st
 }
 
 function RelatoriosContent() {
+  const { nomeNegocio, logoUrl } = useContext(AppContext);
   const [data, setData] = useState<ReportData | null>(null);
-  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [error, setError] = useState(false);
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [pagando, setPagando] = useState<number[] | null>(null);
@@ -138,11 +139,17 @@ function RelatoriosContent() {
   const printDateRef = useRef(new Date().toLocaleDateString("pt-BR"));
 
   const load = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (dataInicio) params.set("dataInicio", dataInicio);
-    if (dataFim) params.set("dataFim", dataFim);
-    const res = await fetch(`/api/relatorios?${params}`);
-    if (res.ok) setData(await res.json());
+    setError(false);
+    try {
+      const params = new URLSearchParams();
+      if (dataInicio) params.set("dataInicio", dataInicio);
+      if (dataFim) params.set("dataFim", dataFim);
+      const res = await fetch(`/api/relatorios?${params}`);
+      if (!res.ok) throw new Error();
+      setData(await res.json());
+    } catch {
+      setError(true);
+    }
   }, [dataInicio, dataFim]);
 
   async function marcarPago(ids: number[]) {
@@ -158,15 +165,21 @@ function RelatoriosContent() {
   }
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then(setPerfil); }, []);
+
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => load()} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
 
   if (!data) return (
     <div className="space-y-8 animate-pulse">
       {/* Header skeleton */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-9 w-48 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="h-9 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
         </div>
         <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
       </div>
@@ -202,7 +215,7 @@ function RelatoriosContent() {
       {/* Evolução mensal */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-6">
-          <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="h-6 w-2/5 bg-gray-200 dark:bg-gray-700 rounded-lg" />
           <div className="flex gap-3 sm:ml-auto">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="h-3.5 w-16 bg-gray-100 dark:bg-gray-800 rounded" />
@@ -216,7 +229,7 @@ function RelatoriosContent() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {[...Array(2)].map((_, i) => (
           <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 p-4 sm:p-7">
-            <div className="h-6 w-44 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
+            <div className="h-6 w-2/5 bg-gray-200 dark:bg-gray-700 rounded-lg mb-6" />
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               <div className="w-36 h-36 rounded-full bg-gray-100 dark:bg-gray-800 mx-auto sm:mx-0 shrink-0" />
               <div className="flex-1 space-y-3">
@@ -238,7 +251,7 @@ function RelatoriosContent() {
       {/* Ranking */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="h-6 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-lg" />
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {[...Array(4)].map((_, i) => (
@@ -246,8 +259,8 @@ function RelatoriosContent() {
               <div className="w-5 h-4 bg-gray-100 dark:bg-gray-800 rounded shrink-0" />
               <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
-                <div className="h-3 w-48 bg-gray-100 dark:bg-gray-800 rounded" />
+                <div className="h-4 w-2/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-3/5 bg-gray-100 dark:bg-gray-800 rounded" />
               </div>
               <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
             </div>
@@ -258,14 +271,14 @@ function RelatoriosContent() {
       {/* Lucro por produto */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="h-6 w-56 bg-gray-200 dark:bg-gray-700 rounded-lg" />
+          <div className="h-6 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-lg" />
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="px-4 py-3">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
-                <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-4 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-4 w-1/4 bg-gray-200 dark:bg-gray-700 rounded" />
               </div>
               <div className="flex gap-4">
                 <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
@@ -302,15 +315,15 @@ function RelatoriosContent() {
 
       {/* Cabeçalho de impressão */}
       <div className="hidden print:flex items-center gap-4 mb-8 pb-4 border-b border-gray-300">
-        {perfil?.logoUrl ? (
-          <img src={perfil.logoUrl} alt="Logo" className="w-14 h-14 rounded-lg object-cover" />
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="w-14 h-14 rounded-lg object-cover" />
         ) : (
           <div className="w-14 h-14 rounded-lg bg-green-600 flex items-center justify-center">
             <span className="text-white font-bold text-xl">R</span>
           </div>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{perfil?.nomeNegocio || "Relatório Financeiro"}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{nomeNegocio || "Relatório Financeiro"}</h1>
           <p className="text-sm text-gray-500">Gerado em {printDateRef.current}{dataInicio || dataFim ? ` · Período: ${dataInicio || "início"} a ${dataFim || "hoje"}` : ""}</p>
         </div>
       </div>

@@ -25,7 +25,6 @@ export async function PATCH() {
       `UPDATE "Perfil" SET "onboardingCompleto" = true WHERE "userId" = $1`,
       userId
     );
-    console.log("[PATCH /api/perfil] rows updated:", rows, "userId:", userId);
     return NextResponse.json({ ok: true, rows });
   } catch (err) {
     console.error("[PATCH /api/perfil] erro:", err);

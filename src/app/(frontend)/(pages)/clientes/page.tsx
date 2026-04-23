@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useContext, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { AppContext } from "@/app/(frontend)/components/AppContext";
 import { Users, Pencil, Trash2, Phone, Mail, History, Cake, TrendingUp, ShoppingBag, Calendar, UserPlus, MessageCircle, AlertCircle, UserX, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 import { DateInput } from "@/app/(frontend)/components/DateInput";
 import { PlanoGuard } from "@/app/(frontend)/components/PlanoGuard";
@@ -287,8 +288,11 @@ function ConfirmModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
 const PER_PAGE = 10;
 type Tab = "todos" | "devedores" | "novos" | "inativos";
 
+const CLIENTES_TTL = 60_000;
+let clientesListCache: { data: Cliente[]; at: number } | null = null;
+
 function ClientesContent() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>(() => clientesListCache?.data ?? []);
   const [stats, setStats] = useState<Stats>({ totalClientes: 0, emDebito: 0, inativos: 0, aniversariantes: 0 });
   const [modal, setModal] = useState<"new" | "edit" | null>(null);
   const [selected, setSelected] = useState<Cliente | null>(null);
@@ -299,21 +303,33 @@ function ClientesContent() {
   const [pagina, setPagina] = useState(1);
   const searchParams = useSearchParams();
   const [busca, setBusca] = useState(searchParams.get("q") ?? "");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!clientesListCache);
+  const [error, setError] = useState(false);
   const [novaVendaCliente, setNovaVendaCliente] = useState<{ id: number; nome: string } | null>(null);
-  const [nomeNegocio, setNomeNegocio] = useState("");
+  const { nomeNegocio } = useContext(AppContext);
   const onboarding = searchParams.get("onboarding") === "1";
   const router = useRouter();
 
   useEffect(() => { setBusca(searchParams.get("q") ?? ""); }, [searchParams]);
 
-  async function load() {
-    const res = await fetch("/api/clientes");
-    if (!res.ok) return;
-    setClientes(await res.json());
-    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => { if (d) setStats(d); });
-    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => { if (d?.nomeNegocio) setNomeNegocio(d.nomeNegocio); });
-    setLoading(false);
+  async function load(force = false) {
+    if (!force && clientesListCache && Date.now() - clientesListCache.at < CLIENTES_TTL) {
+      setClientes(clientesListCache.data);
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/clientes");
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      clientesListCache = { data, at: Date.now() };
+      setClientes(data);
+      fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => { if (d) setStats(d); });
+      setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }
 
   function whatsappHref(cliente: Cliente): string {
@@ -341,7 +357,7 @@ function ClientesContent() {
     if (!deleteId) return;
     await fetch(`/api/clientes/${deleteId}`, { method: "DELETE" });
     setDeleteId(null);
-    load();
+    load(true);
   }
 
   // Filtro por busca
@@ -386,15 +402,22 @@ function ClientesContent() {
     { key: "inativos", label: "Inativos", count: stats.inativos },
   ];
 
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => { setError(false); load(); }} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
+
   if (loading) return (
     <div className="space-y-8 animate-pulse pb-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-9 w-56 bg-gray-200 dark:bg-gray-700 rounded-xl" />
-          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+          <div className="h-9 w-2/3 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
         </div>
-        <div className="h-11 w-40 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        <div className="h-11 w-36 bg-gray-200 dark:bg-gray-700 rounded-full" />
       </div>
       {/* Stat cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -417,16 +440,16 @@ function ClientesContent() {
       {/* Table */}
       <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex gap-4">
-          <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-5 w-20 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
+          <div className="h-5 w-1/3 bg-gray-200 dark:bg-gray-700 rounded" />
+          <div className="h-5 w-1/4 bg-gray-100 dark:bg-gray-800 rounded ml-auto" />
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="px-6 py-4 flex items-center gap-4">
               <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded" />
-                <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 rounded" />
+                <div className="h-4 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-3 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
               </div>
               <div className="h-6 w-20 bg-gray-100 dark:bg-gray-800 rounded-full shrink-0" />
               <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
@@ -444,7 +467,7 @@ function ClientesContent() {
           cliente={modal === "edit" ? selected ?? undefined : undefined}
           onSave={(novoCliente) => {
             setModal(null);
-            load();
+            load(true);
             if (modal === "new" && onboarding) { router.push("/dashboard"); return; }
             if (novoCliente) setNovaVendaCliente(novoCliente);
           }}

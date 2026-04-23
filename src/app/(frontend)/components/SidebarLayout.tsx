@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   LayoutDashboard,
   ArrowLeftRight,
-  PlusCircle,
   BarChart3,
   Sun,
   Moon,
@@ -26,17 +25,14 @@ import {
   Package,
   Lock,
   Zap,
-  AlertTriangle,
-  ShoppingCart,
-  Cake,
-  FileText,
-  CheckCircle2,
-  Clock,
 } from "lucide-react";
+import { NotifDropdown } from "@/app/(frontend)/components/NotifDropdown";
+import { HistoricoDropdown, invalidateHistoricoCache } from "@/app/(frontend)/components/HistoricoDropdown";
 import { createClient } from "@/app/(backend)/lib/supabase/client";
-import { usePlano } from "@/app/(frontend)/hooks/usePlano";
 import { PLANO_INFO } from "@/app/(backend)/lib/plano";
 import type { Plano } from "@/app/(backend)/lib/plano";
+import { AppContext, type PlanoStatus } from "@/app/(frontend)/components/AppContext";
+
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, feature: null },
@@ -66,51 +62,16 @@ function SidebarContent({
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [nomeNegocio, setNomeNegocio] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [pendentes, setPendentes] = useState(0);
-  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
-  const [aniversariantes, setAniversariantes] = useState(0);
-  const plano = usePlano();
+  const { nomeNegocio, pendentes, estoqueBaixo, aniversariantes, plano: planoStatus, planoCarregando } = useContext(AppContext);
+  const plano = {
+    carregando: planoCarregando,
+    trialAtivo: planoStatus?.trialAtivo ?? false,
+    trialDiasRestantes: planoStatus?.trialDiasRestantes ?? 0,
+    plan: planoStatus?.plan ?? "gratuito",
+    temAcesso: (feature: string) => planoStatus?.acessos[feature] ?? false,
+  };
 
   useEffect(() => { setMounted(true); }, []);
-
-  function fetchPerfil() {
-    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      setNomeNegocio(d?.nomeNegocio ?? "");
-      setLogoUrl(d?.logoUrl ?? "");
-    });
-  }
-
-  function fetchPendentes() {
-    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => {
-      setPendentes(d?.count ?? 0);
-    });
-  }
-
-  function fetchEstoqueBaixo() {
-    fetch("/api/produtos").then((r) => r.ok ? r.json() : []).then((produtos: { estoque: number; estoqueMinimo: number | null; ativo: boolean }[]) => {
-      const count = produtos.filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length;
-      setEstoqueBaixo(count);
-    });
-  }
-
-  function fetchAniversariantes() {
-    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => {
-      setAniversariantes(d?.aniversariantes ?? 0);
-    });
-  }
-
-  useEffect(() => { fetchPerfil(); fetchPendentes(); fetchEstoqueBaixo(); fetchAniversariantes(); }, [pathname]);
-
-  useEffect(() => {
-    window.addEventListener("perfilUpdated", fetchPerfil);
-    window.addEventListener("vendas-pendentes-updated", fetchPendentes);
-    return () => {
-      window.removeEventListener("perfilUpdated", fetchPerfil);
-      window.removeEventListener("vendas-pendentes-updated", fetchPendentes);
-    };
-  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -135,7 +96,7 @@ function SidebarContent({
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           {onClose && (
-            <button onClick={onClose} className="lg:hidden text-green-800 dark:text-gray-400 hover:text-green-950 dark:hover:text-gray-200 p-1">
+            <button onClick={onClose} aria-label="Fechar menu" className="lg:hidden text-green-800 dark:text-gray-400 hover:text-green-950 dark:hover:text-gray-200 p-1">
               <X size={18} />
             </button>
           )}
@@ -241,193 +202,20 @@ function SidebarContent({
   );
 }
 
-type Transaction = {
-  id: number;
-  descricao: string;
-  valorTotal: number;
-  tipo: string;
-  data: string;
-  statusPagamento: string;
-  cliente?: { nome: string } | null;
-};
-
-function NotifDropdown() {
-  const [pendentes, setPendentes] = useState(0);
-  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
-  const [aniversariantes, setAniversariantes] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null),
-      fetch("/api/produtos").then((r) => r.ok ? r.json() : []),
-      fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null),
-    ]).then(([vp, produtos, cs]) => {
-      setPendentes(vp?.count ?? 0);
-      const count = (produtos as { estoque: number; estoqueMinimo: number | null; ativo: boolean }[])
-        .filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length;
-      setEstoqueBaixo(count);
-      setAniversariantes(cs?.aniversariantes ?? 0);
-      setLoading(false);
-    });
-  }, []);
-
-  const total = pendentes + estoqueBaixo + aniversariantes;
-
-  return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-        <span className="font-semibold text-sm text-gray-900 dark:text-white">Notificações</span>
-        {total > 0 && (
-          <span className="text-xs font-bold bg-red-500 text-white rounded-full px-2 py-0.5">{total}</span>
-        )}
-      </div>
-      <div className="divide-y divide-gray-50 dark:divide-gray-800">
-        {loading ? (
-          <div className="px-4 py-6 text-center text-sm text-gray-400">Carregando...</div>
-        ) : total === 0 ? (
-          <div className="px-4 py-6 flex flex-col items-center gap-2 text-gray-400">
-            <CheckCircle2 size={28} className="text-green-500" />
-            <span className="text-sm">Tudo em ordem por aqui</span>
-          </div>
-        ) : (
-          <>
-            {pendentes > 0 && (
-              <div className="flex items-start gap-3 px-4 py-3">
-                <div className="mt-0.5 w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
-                  <Clock size={15} className="text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Vendas pendentes</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {pendentes} venda{pendentes !== 1 ? "s" : ""} aguardando pagamento
-                  </p>
-                </div>
-                <span className="ml-auto text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded-full px-2 py-0.5 shrink-0">{pendentes}</span>
-              </div>
-            )}
-            {estoqueBaixo > 0 && (
-              <div className="flex items-start gap-3 px-4 py-3">
-                <div className="mt-0.5 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={15} className="text-red-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Estoque baixo</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {estoqueBaixo} produto{estoqueBaixo !== 1 ? "s" : ""} abaixo do mínimo
-                  </p>
-                </div>
-                <span className="ml-auto text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full px-2 py-0.5 shrink-0">{estoqueBaixo}</span>
-              </div>
-            )}
-            {aniversariantes > 0 && (
-              <div className="flex items-start gap-3 px-4 py-3">
-                <div className="mt-0.5 w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center shrink-0">
-                  <Cake size={15} className="text-pink-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Aniversariantes hoje</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {aniversariantes} cliente{aniversariantes !== 1 ? "s" : ""} fazem aniversário hoje
-                  </p>
-                </div>
-                <span className="ml-auto text-xs font-bold bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400 rounded-full px-2 py-0.5 shrink-0">{aniversariantes}</span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function HistoricoDropdown() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/transactions?limit=5&sortBy=data&sortDir=desc")
-      .then((r) => r.ok ? r.json() : { transactions: [] })
-      .then((d) => {
-        setTransactions(d.transactions ?? []);
-        setLoading(false);
-      });
-  }, []);
-
-  function formatCurrency(val: number) {
-    return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  }
-
-  function formatDate(iso: string) {
-    const d = new Date(iso);
-    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-  }
-
-  return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 z-50 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-        <span className="font-semibold text-sm text-gray-900 dark:text-white">Últimas vendas</span>
-      </div>
-      <div className="divide-y divide-gray-50 dark:divide-gray-800">
-        {loading ? (
-          <div className="px-4 py-6 text-center text-sm text-gray-400">Carregando...</div>
-        ) : transactions.length === 0 ? (
-          <div className="px-4 py-6 flex flex-col items-center gap-2 text-gray-400">
-            <ShoppingCart size={28} />
-            <span className="text-sm">Nenhuma venda registrada</span>
-          </div>
-        ) : (
-          transactions.map((t) => (
-            <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                t.tipo === "venda"
-                  ? "bg-green-100 dark:bg-green-900/30"
-                  : "bg-red-100 dark:bg-red-900/30"
-              }`}>
-                {t.tipo === "venda"
-                  ? <ShoppingCart size={14} className="text-green-600 dark:text-green-400" />
-                  : <FileText size={14} className="text-red-500" />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {t.descricao || t.cliente?.nome || "—"}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5">
-                  <span>{formatDate(t.data)}</span>
-                  {t.statusPagamento === "pendente" && (
-                    <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none">
-                      Pendente
-                    </span>
-                  )}
-                </p>
-              </div>
-              <span className={`text-sm font-semibold shrink-0 ${
-                t.tipo === "venda" ? "text-green-600 dark:text-green-400" : "text-red-500"
-              }`}>
-                {t.tipo === "despesa" ? "−" : "+"}{formatCurrency(t.valorTotal)}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
 
 function AppHeader({ onMobileMenuOpen }: {
   onMobileMenuOpen: () => void;
 }) {
   const router = useRouter();
-  const [nomeNegocio, setNomeNegocio] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [userLabel, setUserLabel] = useState("");
-  const [pendentes, setPendentes] = useState(0);
-  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
-  const [aniversariantes, setAniversariantes] = useState(0);
+  const { nomeNegocio, logoUrl, userLabel, pendentes, estoqueBaixo, aniversariantes } = useContext(AppContext);
   const [notifOpen, setNotifOpen] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    setNotifOpen(false);
+    setHistOpen(false);
+  }, [pathname]);
   const [busca, setBusca] = useState("");
   const notifRef = useRef<HTMLDivElement>(null);
   const histRef = useRef<HTMLDivElement>(null);
@@ -489,41 +277,13 @@ function AppHeader({ onMobileMenuOpen }: {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function fetchNotifCounts() {
-    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
-    fetch("/api/produtos").then((r) => r.ok ? r.json() : []).then((produtos: { estoque: number; estoqueMinimo: number | null; ativo: boolean }[]) => {
-      setEstoqueBaixo(produtos.filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length);
-    });
-    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => setAniversariantes(d?.aniversariantes ?? 0));
-  }
-
-  useEffect(() => {
-    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      setNomeNegocio(d?.nomeNegocio ?? "");
-      setLogoUrl(d?.logoUrl ?? "");
-    });
-    fetchNotifCounts();
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email ?? "";
-      const meta = data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? "";
-      setUserLabel(meta || email.split("@")[0]);
-    });
-
-    window.addEventListener("perfilUpdated", () => {
-      fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-        setNomeNegocio(d?.nomeNegocio ?? "");
-        setLogoUrl(d?.logoUrl ?? "");
-      });
-    });
-    window.addEventListener("vendas-pendentes-updated", fetchNotifCounts);
-  }, []);
 
   return (
     <header className="fixed top-0 left-0 lg:left-64 right-0 z-20 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 flex items-center justify-between h-16 px-4 lg:px-8 gap-4">
       {/* Mobile: hamburger */}
       <button
         onClick={onMobileMenuOpen}
+        aria-label="Abrir menu"
         className="lg:hidden text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 shrink-0"
       >
         <Menu size={22} />
@@ -541,6 +301,7 @@ function AppHeader({ onMobileMenuOpen }: {
             pathname.startsWith("/relatorios") ? "Relatórios" :
             pathname.startsWith("/perfil") ? "Configuração" :
             pathname.startsWith("/dashboard") ? "Dashboard" :
+            pathname.startsWith("/nova") ? "Nova Venda" :
             null;
           return pageTitle ? (
             <span className="font-bold text-gray-900 dark:text-white text-base">{pageTitle}</span>
@@ -575,8 +336,9 @@ function AppHeader({ onMobileMenuOpen }: {
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => { setNotifOpen((o) => !o); setHistOpen(false); }}
+            aria-label="Notificações"
+            aria-expanded={notifOpen}
             className="relative p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            title="Notificações"
           >
             <Bell size={20} />
             {totalNotif > 0 && (
@@ -585,19 +347,20 @@ function AppHeader({ onMobileMenuOpen }: {
               </span>
             )}
           </button>
-          {notifOpen && <NotifDropdown />}
+          {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
         </div>
 
         {/* Histórico */}
         <div className="relative" ref={histRef}>
           <button
             onClick={() => { setHistOpen((o) => !o); setNotifOpen(false); }}
+            aria-label="Histórico de vendas"
+            aria-expanded={histOpen}
             className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            title="Histórico de vendas"
           >
             <History size={20} />
           </button>
-          {histOpen && <HistoricoDropdown />}
+          {histOpen && <HistoricoDropdown onClose={() => setHistOpen(false)} />}
         </div>
 
         {/* Separador */}
@@ -633,6 +396,74 @@ function AppHeader({ onMobileMenuOpen }: {
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const [nomeNegocio, setNomeNegocio] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [metaMensal, setMetaMensal] = useState<number | null>(null);
+  const [perfilCarregando, setPerfilCarregando] = useState(true);
+  const [userLabel, setUserLabel] = useState("");
+  const [pendentes, setPendentes] = useState(0);
+  const [estoqueBaixo, setEstoqueBaixo] = useState(0);
+  const [aniversariantes, setAniversariantes] = useState(0);
+  const [plano, setPlano] = useState<PlanoStatus | null>(null);
+  const [planoCarregando, setPlanoCarregando] = useState(true);
+
+  function refetchPerfil() {
+    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
+      setNomeNegocio(d?.nomeNegocio ?? "");
+      setLogoUrl(d?.logoUrl ?? "");
+      setMetaMensal(d?.metaMensal ?? null);
+      setPerfilCarregando(false);
+    });
+  }
+
+  const estoqueCacheRef = useRef<{ value: number; at: number } | null>(null);
+  const ESTOQUE_TTL = 30_000;
+
+  function refetchNotifCounts(forceEstoque = false) {
+    fetch("/api/vendas-pendentes").then((r) => r.ok ? r.json() : null).then((d) => setPendentes(d?.count ?? 0));
+    fetch("/api/clientes/stats").then((r) => r.ok ? r.json() : null).then((d) => setAniversariantes(d?.aniversariantes ?? 0));
+
+    const cacheValido = !forceEstoque && estoqueCacheRef.current && Date.now() - estoqueCacheRef.current.at < ESTOQUE_TTL;
+    if (cacheValido) {
+      setEstoqueBaixo(estoqueCacheRef.current!.value);
+    } else {
+      fetch("/api/produtos").then((r) => r.ok ? r.json() : []).then((produtos: { estoque: number; estoqueMinimo: number | null; ativo: boolean }[]) => {
+        const count = produtos.filter((p) => p.ativo && p.estoqueMinimo != null && p.estoque <= p.estoqueMinimo).length;
+        estoqueCacheRef.current = { value: count, at: Date.now() };
+        setEstoqueBaixo(count);
+      });
+    }
+  }
+
+  // Carrega uma única vez na montagem: perfil, usuário e plano
+  useEffect(() => {
+    refetchPerfil();
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data.user?.email ?? "";
+      const meta = data.user?.user_metadata?.full_name ?? data.user?.user_metadata?.name ?? "";
+      setUserLabel(meta || email.split("@")[0]);
+    });
+    fetch("/api/plano")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { setPlano(d); setPlanoCarregando(false); })
+      .catch(() => setPlanoCarregando(false));
+  }, []);
+
+  // Recarrega contadores de notificação a cada troca de página
+  useEffect(() => { refetchNotifCounts(); }, [pathname]);
+
+  useEffect(() => {
+    function onVendasUpdated() { refetchNotifCounts(true); invalidateHistoricoCache(); }
+    window.addEventListener("perfilUpdated", refetchPerfil);
+    window.addEventListener("vendas-pendentes-updated", onVendasUpdated);
+    return () => {
+      window.removeEventListener("perfilUpdated", refetchPerfil);
+      window.removeEventListener("vendas-pendentes-updated", onVendasUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -645,33 +476,35 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden">
-      {/* Sidebar desktop — sempre visível e fixo */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30">
-        <SidebarContent />
-      </aside>
+    <AppContext.Provider value={{ nomeNegocio, logoUrl, metaMensal, perfilCarregando, userLabel, pendentes, estoqueBaixo, aniversariantes, plano, planoCarregando, refetchPerfil, refetchNotifCounts }}>
+      <div className="flex min-h-screen overflow-x-hidden">
+        {/* Sidebar desktop — sempre visível e fixo */}
+        <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 flex-col z-30">
+          <SidebarContent />
+        </aside>
 
-      {/* Sidebar mobile overlay */}
-      {mobileOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
-      )}
+        {/* Sidebar mobile overlay */}
+        {mobileOpen && (
+          <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        )}
 
-      {/* Sidebar mobile drawer */}
-      <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 z-50 transition-transform duration-300 lg:hidden ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <SidebarContent onClose={() => setMobileOpen(false)} />
-      </aside>
+        {/* Sidebar mobile drawer */}
+        <aside
+          className={`fixed left-0 top-0 h-full w-64 bg-[#c6fdd9] dark:bg-gray-900 z-50 transition-transform duration-300 lg:hidden ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <SidebarContent onClose={() => setMobileOpen(false)} />
+        </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
-        <AppHeader onMobileMenuOpen={() => setMobileOpen(true)} />
-        <main className="flex-1 p-5 sm:p-6 lg:p-8 pt-[calc(4rem+1.25rem)] sm:pt-[calc(4rem+1.5rem)] lg:pt-[calc(4rem+2rem)]">
-          {children}
-        </main>
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
+          <AppHeader onMobileMenuOpen={() => setMobileOpen(true)} />
+          <main className="flex-1 p-5 sm:p-6 lg:p-8 pt-[calc(4rem+1.25rem)] sm:pt-[calc(4rem+1.5rem)] lg:pt-[calc(4rem+2rem)]">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AppContext.Provider>
   );
 }

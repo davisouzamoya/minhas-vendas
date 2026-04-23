@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useContext, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Settings, Target, Store, Image, MessageSquarePlus, Bug, Lightbulb, Heart, Send } from "lucide-react";
+import { AppContext } from "@/app/(frontend)/components/AppContext";
 
 const TIPOS_FEEDBACK = [
   { value: "melhoria", label: "Melhoria", icon: Lightbulb, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20", ring: "ring-blue-500/30" },
@@ -35,22 +36,42 @@ function FeedbackSection() {
     setSent(true);
     setTitulo("");
     setMensagem("");
-    setTimeout(() => setSent(false), 4000);
+    setTipo("melhoria");
+    setTimeout(() => setSent(false), 5000);
+  }
+
+  const header = (
+    <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+      <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-full">
+        <MessageSquarePlus size={16} className="text-purple-600 dark:text-purple-400" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gray-900 dark:text-white">Feedback</p>
+        <p className="text-xs text-gray-400">Sugestões, bugs ou elogios — adoramos ouvir você</p>
+      </div>
+    </div>
+  );
+
+  if (sent) {
+    return (
+      <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+        {header}
+        <div className="p-10 flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle size={28} className="text-green-600 dark:text-green-400" />
+          </div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Obrigado pelo feedback!</p>
+          <p className="text-xs text-gray-400">Sua mensagem foi enviada com sucesso. Adoramos ouvir você.</p>
+        </div>
+      </div>
+    );
   }
 
   const tipoAtual = TIPOS_FEEDBACK.find((t) => t.value === tipo)!;
 
   return (
     <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-        <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-full">
-          <MessageSquarePlus size={16} className="text-purple-600 dark:text-purple-400" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">Feedback</p>
-          <p className="text-xs text-gray-400">Sugestões, bugs ou elogios — adoramos ouvir você</p>
-        </div>
-      </div>
+      {header}
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         {/* Tipo */}
         <div className="flex gap-2">
@@ -110,12 +131,7 @@ function FeedbackSection() {
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <div className="flex items-center justify-end gap-3">
-          {sent && (
-            <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
-              <CheckCircle size={16} /> Feedback enviado, obrigado!
-            </div>
-          )}
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={loading}
@@ -138,17 +154,27 @@ function PerfilContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const onboarding = searchParams.get("onboarding") === "1";
-  const [form, setForm] = useState({ nomeNegocio: "", logoUrl: "", metaMensal: "" });
-  const [loadingData, setLoadingData] = useState(true);
+
+  const { nomeNegocio: ctxNome, logoUrl: ctxLogo, metaMensal: ctxMeta, perfilCarregando, refetchPerfil } = useContext(AppContext);
+
+  const [form, setForm] = useState({
+    nomeNegocio: ctxNome,
+    logoUrl: ctxLogo,
+    metaMensal: ctxMeta != null ? String(ctxMeta) : "",
+  });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/perfil").then((r) => r.ok ? r.json() : null).then((d) => {
-      if (d) setForm({ nomeNegocio: d.nomeNegocio ?? "", logoUrl: d.logoUrl ?? "", metaMensal: d.metaMensal ? String(d.metaMensal) : "" });
-      setLoadingData(false);
+  // Sincroniza form quando o contexto terminar de carregar (ex: hard refresh)
+  const [synced, setSynced] = useState(!perfilCarregando);
+  if (!synced && !perfilCarregando) {
+    setSynced(true);
+    setForm({
+      nomeNegocio: ctxNome,
+      logoUrl: ctxLogo,
+      metaMensal: ctxMeta != null ? String(ctxMeta) : "",
     });
-  }, []);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -159,6 +185,7 @@ function PerfilContent() {
       body: JSON.stringify({ nomeNegocio: form.nomeNegocio, logoUrl: form.logoUrl || null, metaMensal: form.metaMensal || null }),
     });
     setLoading(false);
+    refetchPerfil();
     window.dispatchEvent(new Event("perfilUpdated"));
     if (onboarding) {
       router.push("/nova?onboarding=1");
@@ -171,10 +198,10 @@ function PerfilContent() {
 
   const meta = parseFloat(form.metaMensal) || 0;
 
-  if (loadingData) return (
+  if (perfilCarregando) return (
     <div className="space-y-8 pb-8 animate-pulse">
       <div className="hidden sm:block space-y-2">
-        <div className="h-10 w-52 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+        <div className="h-10 w-1/2 bg-gray-200 dark:bg-gray-700 rounded-xl" />
         <div className="h-4 w-72 bg-gray-100 dark:bg-gray-800 rounded-lg" />
       </div>
       {[...Array(2)].map((_, i) => (
@@ -182,14 +209,14 @@ function PerfilContent() {
           <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-800">
             <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800" />
             <div className="space-y-1.5">
-              <div className="h-3.5 w-40 bg-gray-200 dark:bg-gray-700 rounded" />
-              <div className="h-3 w-56 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-3.5 w-3/5 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-3/4 bg-gray-100 dark:bg-gray-800 rounded" />
             </div>
           </div>
           <div className="p-6 space-y-5">
             <div className="h-16 w-full bg-gray-100 dark:bg-gray-800 rounded-2xl" />
             <div className="space-y-1.5">
-              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-800 rounded" />
+              <div className="h-3 w-2/5 bg-gray-100 dark:bg-gray-800 rounded" />
               <div className="h-10 w-full bg-gray-100 dark:bg-gray-800 rounded-xl" />
             </div>
           </div>

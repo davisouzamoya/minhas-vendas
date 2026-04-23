@@ -76,6 +76,7 @@ function EstoqueContent() {
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [busca, setBusca] = useState(qParam);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -97,9 +98,16 @@ function EstoqueContent() {
 
   async function fetchProdutos() {
     setLoading(true);
-    const res = await fetch(`/api/produtos${busca ? `?q=${encodeURIComponent(busca)}` : ""}`);
-    if (res.ok) setProdutos(await res.json());
-    setLoading(false);
+    setError(false);
+    try {
+      const res = await fetch(`/api/produtos${busca ? `?q=${encodeURIComponent(busca)}` : ""}`);
+      if (!res.ok) throw new Error();
+      setProdutos(await res.json());
+      setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -253,6 +261,44 @@ function EstoqueContent() {
   );
   const semEstoque = produtos.filter((p) => p.ativo && p.estoque === 0);
 
+  if (error) return (
+    <div className="flex flex-col items-center gap-3 py-20 text-gray-500">
+      <p className="text-sm">Não foi possível carregar os dados.</p>
+      <button onClick={() => { setError(false); fetchProdutos(); }} className="text-sm text-green-600 hover:underline">Tentar novamente</button>
+    </div>
+  );
+
+  if (loading) return (
+    <div className="max-w-5xl mx-auto space-y-6 animate-pulse">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-8 w-1/3 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+          <div className="h-4 w-1/4 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+        </div>
+        <div className="h-10 w-36 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+      </div>
+      {/* Search */}
+      <div className="h-10 w-full bg-gray-100 dark:bg-gray-800 rounded-xl" />
+      {/* Cards */}
+      <div className="space-y-2">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-4 py-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-2/5 bg-gray-200 dark:bg-gray-700 rounded" />
+              <div className="h-3 w-1/3 bg-gray-100 dark:bg-gray-800 rounded" />
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="h-6 w-16 bg-gray-100 dark:bg-gray-800 rounded-full" />
+              <div className="h-6 w-6 bg-gray-100 dark:bg-gray-800 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
 
@@ -323,9 +369,7 @@ function EstoqueContent() {
       </div>
 
       {/* Lista */}
-      {loading ? (
-        <div className="text-center py-16 text-gray-400 text-sm">Carregando...</div>
-      ) : produtos.length === 0 ? (
+      {produtos.length === 0 ? (
         <div className="text-center py-16">
           <Package size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
           <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum produto cadastrado</p>
